@@ -4,7 +4,8 @@ project for MiTP
 - [x] Event loop
 - [ ] Wifi driver
 - [ ] Cam driver
-- [ ] Img processing task
+- [ ] Processing img by edge detection algorithm 
+- [ ] Sending img to Host
 
-### features
+### Features
 - [ ] Golioth cloud
