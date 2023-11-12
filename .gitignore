@@ -3,3 +3,4 @@ cmake-build-debug
 sdkconfig
 sdkconfig.old
 sdkconfig.ci
+.idea
