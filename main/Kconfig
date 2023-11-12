@@ -1,0 +1,8 @@
+menu "Credentials"
+    config WIFI_SSID
+        string "wifi ssid"
+        default NULL
+    config WIFI_PASS
+        string "wifi password"
+        default NULL
+endmenu
