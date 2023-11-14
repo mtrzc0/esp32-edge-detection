@@ -44,6 +44,5 @@ void app_main(void)
 
     ESP_LOGI(app_tag, "ESP_WIFI_MODE_STA");
     wifi_init();
-    // TODO wifi driver
     // TODO cam driver
 }
