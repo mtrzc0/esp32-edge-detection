@@ -1,21 +1,15 @@
-#include <stdio.h>
 #include <inttypes.h>
 #include "sdkconfig.h"
 #include "esp_chip_info.h"
 #include "esp_flash.h"
 #include "esp_log.h"
 #include "esp_event.h"
-#include "esp_timer.h"
 #include "esp_err.h"
+#include "nvs_flash.h"
 #include "timer_test.h"
+#include "wifi_manager.h"
 
-const char *app_tag = "main";
-
-// timer related definitions
-esp_timer_create_args_t timer_args = {
-        .callback = &timer_event_post
-};
-esp_timer_handle_t timer;
+const char *app_tag = "app";
 
 void app_main(void)
 {
@@ -38,13 +32,18 @@ void app_main(void)
     // create default loop for all events
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-    // create test timer
-    ESP_ERROR_CHECK(esp_timer_create(&timer_args, &timer));
-    ESP_ERROR_CHECK(esp_timer_start_periodic(timer, TIMER_PERIOD));
+    //timer_init();
 
-    // register callback which event loop execute when timer event occurs
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(TIMER_EVENT, TIMER_EVENT_POST, timer_event_from_loop, NULL, NULL));
+    //Initialize NVS
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
 
+    ESP_LOGI(app_tag, "ESP_WIFI_MODE_STA");
+    wifi_init();
     // TODO wifi driver
     // TODO cam driver
 }

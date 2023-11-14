@@ -1,6 +1,5 @@
-#ifndef TIMER_TEST_H_
-#define TIMER_TEST_H_
-
+#ifndef TIMER_TEST_H
+#define TIMER_TEST_H
 #include "esp_event.h"
 #include "esp_timer.h"
 
@@ -21,9 +20,10 @@ ESP_EVENT_DECLARE_BASE(TIMER_EVENT);
 
 void timer_event_post(void *handler_arg, esp_event_base_t base, int32_t id, void *event_data);
 void timer_event_from_loop(void *handler_arg, esp_event_base_t base, int32_t id, void *event_data);
+void timer_init(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif // TIMER_TEST_H_
+#endif // TIMER_TEST_H
