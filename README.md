@@ -1,4 +1,4 @@
-project for MiTP
+Project for MiTP
 
 ### Core
 - [x] Event loop
