@@ -17,7 +17,7 @@ static EventGroupHandle_t s_wifi_event_group;
 #define WIFI_FAIL_BIT      BIT(1)
 #define CONFIG_ESP_MAXIMUM_RETRY BIT(3)
 
-static const char *wifi_tag = "[SYSTEM] [WIFI]";
+static const char *wifi_tag = "wifi";
 
 static int s_retry_num = 0;
 
@@ -34,7 +34,7 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
         } else {
             xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
         }
-        ESP_LOGI(wifi_tag,"connect to the AP fail");
+        ESP_LOGE(wifi_tag,"connect to the AP fail");
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         ESP_LOGI(wifi_tag, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
@@ -93,7 +93,7 @@ void wifi_init(void)
     if (bits & WIFI_CONNECTED_BIT) {
         ESP_LOGI(wifi_tag, "connected to wifi");
     } else if (bits & WIFI_FAIL_BIT) {
-        ESP_LOGI(wifi_tag, "Failed to connect to wifi");
+        ESP_LOGE(wifi_tag, "Failed to connect to wifi");
     } else {
         ESP_LOGE(wifi_tag, "unexpected event");
     }

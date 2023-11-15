@@ -1,122 +1,103 @@
 #ifndef ESP32_CAM_SCANNER_CAMERA_MANAGER_H
 #define ESP32_CAM_SCANNER_CAMERA_MANAGER_H
 
-#if CONFIG_OV2640_SUPPORT
-#include "ov2640.h"
-#endif
-#if CONFIG_OV7725_SUPPORT
-#include "ov7725.h"
-#endif
-#if CONFIG_OV3660_SUPPORT
-#include "ov3660.h"
-#endif
-#if CONFIG_OV5640_SUPPORT
-#include "ov5640.h"
-#endif
-#if CONFIG_NT99141_SUPPORT
-#include "nt99141.h"
-#endif
-#if CONFIG_OV7670_SUPPORT
-#include "ov7670.h"
-#endif
-#if CONFIG_GC2145_SUPPORT
-#include "gc2145.h"
-#endif
-#if CONFIG_GC032A_SUPPORT
-#include "gc032a.h"
-#endif
-#if CONFIG_GC0308_SUPPORT
-#include "gc0308.h"
-#endif
-#if CONFIG_BF3005_SUPPORT
-#include "bf3005.h"
-#endif
-#if CONFIG_BF20A6_SUPPORT
-#include "bf20a6.h"
-#endif
-#if CONFIG_SC101IOT_SUPPORT
-#include "sc101iot.h"
-#endif
-#if CONFIG_SC030IOT_SUPPORT
-#include "sc030iot.h"
-#endif
-#if CONFIG_SC031GS_SUPPORT
-#include "sc031gs.h"
+#include <esp_log.h>
+#include <esp_system.h>
+#include <nvs_flash.h>
+#include <sys/param.h>
+#include <string.h>
+
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
+// support IDF 5.x
+#ifndef portTICK_RATE_MS
+#define portTICK_RATE_MS portTICK_PERIOD_MS
 #endif
 
-#if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
-#include "esp32-hal-log.h"
-#define TAG ""
-#else
-#include "esp_log.h"
-static const char *TAG = "camera";
+#include "esp_camera.h"
+
+// #define BOARD_WROVER_KIT 1
+#define BOARD_ESP32CAM_AITHINKER 1
+
+// WROVER-KIT PIN Map
+#ifdef BOARD_WROVER_KIT
+
+#define CAM_PIN_PWDN -1  //power down is not used
+#define CAM_PIN_RESET -1 //software reset will be performed
+#define CAM_PIN_XCLK 21
+#define CAM_PIN_SIOD 26
+#define CAM_PIN_SIOC 27
+
+#define CAM_PIN_D7 35
+#define CAM_PIN_D6 34
+#define CAM_PIN_D5 39
+#define CAM_PIN_D4 36
+#define CAM_PIN_D3 19
+#define CAM_PIN_D2 18
+#define CAM_PIN_D1 5
+#define CAM_PIN_D0 4
+#define CAM_PIN_VSYNC 25
+#define CAM_PIN_HREF 23
+#define CAM_PIN_PCLK 22
+
 #endif
 
-typedef struct {
-    sensor_t sensor;
-    camera_fb_t fb;
-} camera_state_t;
+// ESP32Cam (AiThinker) PIN Map
+#ifdef BOARD_ESP32CAM_AITHINKER
 
-static const char *CAMERA_SENSOR_NVS_KEY = "sensor";
-static const char *CAMERA_PIXFORMAT_NVS_KEY = "pixformat";
-static camera_state_t *s_state = NULL;
+#define CAM_PIN_PWDN 32
+#define CAM_PIN_RESET -1 //software reset will be performed
+#define CAM_PIN_XCLK 0
+#define CAM_PIN_SIOD 26
+#define CAM_PIN_SIOC 27
 
-#if CONFIG_IDF_TARGET_ESP32S3 // LCD_CAM module of ESP32-S3 will generate xclk
-#define CAMERA_ENABLE_OUT_CLOCK(v)
-#define CAMERA_DISABLE_OUT_CLOCK()
-#else
-#define CAMERA_ENABLE_OUT_CLOCK(v) camera_enable_out_clock((v))
-#define CAMERA_DISABLE_OUT_CLOCK() camera_disable_out_clock()
+#define CAM_PIN_D7 35
+#define CAM_PIN_D6 34
+#define CAM_PIN_D5 39
+#define CAM_PIN_D4 36
+#define CAM_PIN_D3 21
+#define CAM_PIN_D2 19
+#define CAM_PIN_D1 18
+#define CAM_PIN_D0 5
+#define CAM_PIN_VSYNC 25
+#define CAM_PIN_HREF 23
+#define CAM_PIN_PCLK 22
+
 #endif
 
-typedef struct {
-    int (*detect)(int slv_addr, sensor_id_t *id);
-    int (*init)(sensor_t *sensor);
-} sensor_func_t;
+static camera_config_t camera_config = {
+        .pin_pwdn = CAM_PIN_PWDN,
+        .pin_reset = CAM_PIN_RESET,
+        .pin_xclk = CAM_PIN_XCLK,
+        .pin_sccb_sda = CAM_PIN_SIOD,
+        .pin_sccb_scl = CAM_PIN_SIOC,
 
-static const sensor_func_t g_sensors[] = {
-#if CONFIG_OV7725_SUPPORT
-        {ov7725_detect, ov7725_init},
-#endif
-#if CONFIG_OV7670_SUPPORT
-        {ov7670_detect, ov7670_init},
-#endif
-#if CONFIG_OV2640_SUPPORT
-        {ov2640_detect, ov2640_init},
-#endif
-#if CONFIG_OV3660_SUPPORT
-        {ov3660_detect, ov3660_init},
-#endif
-#if CONFIG_OV5640_SUPPORT
-        {ov5640_detect, ov5640_init},
-#endif
-#if CONFIG_NT99141_SUPPORT
-        {nt99141_detect, nt99141_init},
-#endif
-#if CONFIG_GC2145_SUPPORT
-        {gc2145_detect, gc2145_init},
-#endif
-#if CONFIG_GC032A_SUPPORT
-        {gc032a_detect, gc032a_init},
-#endif
-#if CONFIG_GC0308_SUPPORT
-        {gc0308_detect, gc0308_init},
-#endif
-#if CONFIG_BF3005_SUPPORT
-        {bf3005_detect, bf3005_init},
-#endif
-#if CONFIG_BF20A6_SUPPORT
-        {bf20a6_detect, bf20a6_init},
-#endif
-#if CONFIG_SC101IOT_SUPPORT
-        {sc101iot_detect, sc101iot_init},
-#endif
-#if CONFIG_SC030IOT_SUPPORT
-        {sc030iot_detect, sc030iot_init},
-#endif
-#if CONFIG_SC031GS_SUPPORT
-        {sc031gs_detect, sc031gs_init},
-#endif
+        .pin_d7 = CAM_PIN_D7,
+        .pin_d6 = CAM_PIN_D6,
+        .pin_d5 = CAM_PIN_D5,
+        .pin_d4 = CAM_PIN_D4,
+        .pin_d3 = CAM_PIN_D3,
+        .pin_d2 = CAM_PIN_D2,
+        .pin_d1 = CAM_PIN_D1,
+        .pin_d0 = CAM_PIN_D0,
+        .pin_vsync = CAM_PIN_VSYNC,
+        .pin_href = CAM_PIN_HREF,
+        .pin_pclk = CAM_PIN_PCLK,
+
+        //XCLK 20MHz or 10MHz for OV2640 double FPS (Experimental)
+        .xclk_freq_hz = 20000000,
+        .ledc_timer = LEDC_TIMER_0,
+        .ledc_channel = LEDC_CHANNEL_0,
+
+        .pixel_format = PIXFORMAT_RGB565, //YUV422,GRAYSCALE,RGB565,JPEG
+        .frame_size = FRAMESIZE_QVGA,    //QQVGA-UXGA, For ESP32, do not use sizes above QVGA when not JPEG. The performance of the ESP32-S series has improved a lot, but JPEG mode always gives better frame rates.
+
+        .jpeg_quality = 12, //0-63, for OV series camera sensors, lower number means higher quality
+        .fb_count = 1,       //When jpeg mode is used, if fb_count more than one, the driver will work in continuous mode.
+        .grab_mode = CAMERA_GRAB_WHEN_EMPTY,
 };
+esp_err_t camera_init();
+void take_picture(void *pvParameters);
 
 #endif //ESP32_CAM_SCANNER_CAMERA_MANAGER_H

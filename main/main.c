@@ -8,8 +8,9 @@
 #include "nvs_flash.h"
 //#include "timer_test.h"
 #include "wifi_manager.h"
+#include "camera_manager.h"
 
-const char *app_tag = "[SYSTEM] [APP]";
+const char *app_tag = "app";
 
 void app_main(void)
 {
@@ -39,11 +40,9 @@ void app_main(void)
     // create default loop for all events
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-    //timer_init();
+    ESP_LOGI(app_tag, "Initialize camera");
+    camera_init();
 
-
-
-    ESP_LOGI(app_tag, "ESP_WIFI_MODE_STA");
+    ESP_LOGI(app_tag, "Initialize wifi");
     wifi_init();
-    // TODO cam driver
 }
