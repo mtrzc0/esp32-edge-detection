@@ -7,22 +7,23 @@
 #include "esp_log.h"
 #include "wifi_manager.h"
 
-/* FreeRTOS event group to signal when we are connected*/
+// FreeRTOS event group to signal when we are connected
 static EventGroupHandle_t s_wifi_event_group;
 
-/* The event group allows multiple bits for each event, but we only care about two events:
- * - we are connected to the AP with an IP
- * - we failed to connect after the maximum amount of retries */
+// The event group allows multiple bits for each event, but we only care about two events:
+// - we are connected to the AP with an IP
+// - we failed to connect after the maximum amount of retries
 #define WIFI_CONNECTED_BIT BIT(0)
 #define WIFI_FAIL_BIT      BIT(1)
-#define CONFIG_ESP_MAXIMUM_RETRY BIT(4)
+#define CONFIG_ESP_MAXIMUM_RETRY BIT(3)
 
-static const char *wifi_tag = "wifi station";
+static const char *wifi_tag = "[SYSTEM] [WIFI]";
 
 static int s_retry_num = 0;
 
 static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
+    (void) arg;
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         esp_wifi_connect();
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
@@ -53,6 +54,7 @@ void wifi_init(void)
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
+    // register events in default event loop
     esp_event_handler_instance_t instance_any_id;
     esp_event_handler_instance_t instance_got_ip;
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
@@ -75,27 +77,24 @@ void wifi_init(void)
     };
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA) );
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config) );
-    ESP_ERROR_CHECK(esp_wifi_start() );
+    ESP_ERROR_CHECK(esp_wifi_start());
 
-    ESP_LOGI(wifi_tag, "wifi_init_sta finished.");
+    ESP_LOGI(wifi_tag, "wifi_init finished");
 
-    /* Waiting until either the connection is established (WIFI_CONNECTED_BIT) or connection failed for the maximum
-     * number of re-tries (WIFI_FAIL_BIT). The bits are set by event_handler() (see above) */
+    // Waiting until either the connection is established (WIFI_CONNECTED_BIT) or connection failed for the maximum
+    // number of re-tries (WIFI_FAIL_BIT). The bits are set by event_handler() (see above)
     EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group,
                                            WIFI_CONNECTED_BIT | WIFI_FAIL_BIT,
                                            pdFALSE,
                                            pdFALSE,
                                            portMAX_DELAY);
 
-    /* xEventGroupWaitBits() returns the bits before the call returned, hence we can test which event actually
-     * happened. */
+    // xEventGroupWaitBits() returns the bits before the call returned, hence we can test which event actually happened.
     if (bits & WIFI_CONNECTED_BIT) {
-        ESP_LOGI(wifi_tag, "connected to ap SSID:%s password:%s",
-                 CONFIG_WIFI_SSID, CONFIG_WIFI_PASS);
+        ESP_LOGI(wifi_tag, "connected to wifi");
     } else if (bits & WIFI_FAIL_BIT) {
-        ESP_LOGI(wifi_tag, "Failed to connect to SSID:%s, password:%s",
-                 CONFIG_WIFI_SSID, CONFIG_WIFI_PASS);
+        ESP_LOGI(wifi_tag, "Failed to connect to wifi");
     } else {
-        ESP_LOGE(wifi_tag, "UNEXPECTED EVENT");
+        ESP_LOGE(wifi_tag, "unexpected event");
     }
 }

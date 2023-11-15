@@ -32,8 +32,6 @@ void timer_init(void)
     };
     esp_timer_handle_t timer;
 
-
-
     // create test timer
     ESP_ERROR_CHECK(esp_timer_create(&timer_args, &timer));
     ESP_ERROR_CHECK(esp_timer_start_periodic(timer, TIMER_PERIOD));
