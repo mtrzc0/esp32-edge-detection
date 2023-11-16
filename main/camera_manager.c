@@ -4,7 +4,6 @@
 #include "task_prio.h"
 
 static const char *cam_tag = "camera";
-TaskFunction_t take_picture_task = NULL;
 
 esp_err_t camera_init(void)
 {
@@ -20,7 +19,7 @@ esp_err_t camera_init(void)
     BaseType_t ret;
 
     // create task which takes picture
-    ret = xTaskCreate(take_picture_task, cam_tag, configMINIMAL_STACK_SIZE, NULL, TP_TAKE_PIC, NULL);
+    ret = xTaskCreate(take_picture, cam_tag, configMINIMAL_STACK_SIZE + 2048, NULL, TP_TAKE_PIC, NULL);
     ESP_ERROR_CHECK(ret != pdPASS ? ESP_ERR_NO_MEM : ESP_OK);
 
     return ESP_OK;
@@ -28,6 +27,7 @@ esp_err_t camera_init(void)
 
 void take_picture(void *pvParameters)
 {
+    (void) pvParameters;
     while (1)
     {
         ESP_LOGI(cam_tag, "Taking picture...");

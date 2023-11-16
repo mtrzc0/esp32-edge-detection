@@ -40,9 +40,7 @@ void app_main(void)
     // create default loop for all events
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
-    ESP_LOGI(app_tag, "Initialize camera");
+    ESP_LOGI(app_tag, "Initializing modules");
     camera_init();
-
-    ESP_LOGI(app_tag, "Initialize wifi");
     wifi_init();
 }
