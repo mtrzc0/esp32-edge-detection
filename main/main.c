@@ -6,7 +6,6 @@
 #include "esp_event.h"
 #include "esp_err.h"
 #include "nvs_flash.h"
-//#include "timer_test.h"
 #include "wifi_manager.h"
 #include "camera_manager.h"
 
