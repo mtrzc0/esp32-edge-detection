@@ -7,7 +7,6 @@ static const char *cam_tag = "camera";
 
 esp_err_t camera_init(void)
 {
-    //fixme init error
     //initialize the camera
     esp_err_t err = esp_camera_init(&camera_config);
     if (err != ESP_OK)
