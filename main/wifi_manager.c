@@ -1,4 +1,5 @@
 #include <string.h>
+#include <esp_mac.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/event_groups.h"
 #include "esp_system.h"
@@ -80,6 +81,14 @@ void wifi_init(void)
     ESP_ERROR_CHECK(esp_wifi_start());
 
     ESP_LOGI(wifi_tag, "wifi_init finished");
+
+    // get mac address
+    uint8_t mac_addr[6] = {0};
+    char mac_addr_str[32];
+    ESP_ERROR_CHECK(esp_base_mac_addr_get(mac_addr));
+    size_t i;
+    sprintf(mac_addr_str, "%X:%X:%X:%X:%X:%X", mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+    ESP_LOGI(wifi_tag, "Device mac address %s", mac_addr_str);
 
     // Waiting until either the connection is established (WIFI_CONNECTED_BIT) or connection failed for the maximum
     // number of re-tries (WIFI_FAIL_BIT). The bits are set by event_handler() (see above)

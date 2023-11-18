@@ -1,4 +1,6 @@
 #include <inttypes.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/event_groups.h"
 #include "sdkconfig.h"
 #include "esp_chip_info.h"
 #include "esp_flash.h"
@@ -8,12 +10,15 @@
 #include "nvs_flash.h"
 #include "wifi_manager.h"
 #include "camera_manager.h"
+#include "http_client_manager.h"
 
 const char *app_tag = "app";
 
 void app_main(void)
 {
     ESP_LOGD(app_tag, "Main application startup\n");
+
+    static EventGroupHandle_t s_app_event_group;
 
     // get info about the soc
     uint32_t flash_size;
@@ -34,12 +39,14 @@ void app_main(void)
         ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
     }
-    ESP_ERROR_CHECK(ret);ESP_LOGD(app_tag, "Minimum free heap size: %" PRIu32 " bytes\n", esp_get_minimum_free_heap_size());
+    ESP_ERROR_CHECK(ret);
+    ESP_LOGD(app_tag, "Minimum free heap size: %" PRIu32 " bytes\n", esp_get_minimum_free_heap_size());
 
     // create default loop for all events
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     ESP_LOGI(app_tag, "Initializing modules");
-    camera_init();
     wifi_init();
+    // http_client_init();
+    camera_init();
 }

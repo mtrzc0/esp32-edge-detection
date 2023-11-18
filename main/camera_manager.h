@@ -16,6 +16,7 @@
 #endif
 
 #include "esp_camera.h"
+#include "esp_event.h"
 
 //#define BOARD_WROVER_KIT 1
 #define BOARD_ESP32CAM_AITHINKER 1
@@ -66,6 +67,15 @@
 
 #endif
 
+typedef enum {
+    CAMERA_EVENT_PICTURE_TAKEN,
+    CAMERA_EVENT_INIT_COMPLETE,
+    CAMERA_EVENT_INIT_FAIL,
+    CAMERA_EVENT_ANY
+} camera_events_t;
+
+ESP_EVENT_DECLARE_BASE(CAMERA_EVENTS);
+
 static camera_config_t camera_config = {
         .pin_pwdn = CAM_PIN_PWDN,
         .pin_reset = CAM_PIN_RESET,
@@ -97,6 +107,8 @@ static camera_config_t camera_config = {
         .fb_count = 1,       //When jpeg mode is used, if fb_count more than one, the driver will work in continuous mode.
         .grab_mode = CAMERA_GRAB_WHEN_EMPTY,
 };
+
+static void camera_event_handler(void *arg, esp_event_base_t event_base, int8_t event_id, void *event_data);
 esp_err_t camera_init();
 void take_picture(void *pvParameters);
 
