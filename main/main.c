@@ -10,7 +10,6 @@
 #include "nvs_flash.h"
 #include "wifi_manager.h"
 #include "camera_manager.h"
-#include "http_client_manager.h"
 
 const char *app_tag = "app";
 
@@ -47,6 +46,5 @@ void app_main(void)
 
     ESP_LOGI(app_tag, "Initializing modules");
     wifi_init();
-    // http_client_init();
     camera_init();
 }

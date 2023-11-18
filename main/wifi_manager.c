@@ -99,7 +99,8 @@ void wifi_init(void)
                                            portMAX_DELAY);
 
     // xEventGroupWaitBits() returns the bits before the call returned, hence we can test which event actually happened.
-    if (bits & WIFI_CONNECTED_BIT) {
+    if (bits & WIFI_CONNECTED_BIT)
+    {
         ESP_LOGI(wifi_tag, "connected to wifi");
     } else if (bits & WIFI_FAIL_BIT) {
         ESP_LOGE(wifi_tag, "Failed to connect to wifi");
