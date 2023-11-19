@@ -70,7 +70,7 @@ void udp_client_task(void *pvParameters)
     if (err < 0)
         ESP_LOGE(websocket_tag, "Error occurred during sending: errno %d", errno);
     else
-        ESP_LOGI(websocket_tag, "Jpeg binary sent in UDP");
+        ESP_LOGI(websocket_tag, "JPEG binary sent in UDP");
 
     vTaskDelete(NULL);
 }

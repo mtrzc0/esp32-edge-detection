@@ -4,5 +4,6 @@ Project for MiTP
 - [x] Event loop
 - [x] Wifi driver
 - [x] Cam driver
-- [ ] Processing img by edge detection algorithm 
-- [ ] Sending img to Host
+- [ ] Processing JPEG by edge detection algorithm 
+- [x] Sending JPEG to Host
+- [ ] Receiving JPEG from ESP32
