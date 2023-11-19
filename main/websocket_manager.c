@@ -1,95 +1,76 @@
-#include <string.h>
 #include <sys/param.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/event_groups.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 #include "esp_system.h"
-#include "esp_event.h"
 #include "esp_log.h"
-#include "nvs_flash.h"
-#include "esp_netif.h"
 #include "lwip/err.h"
 #include "lwip/sockets.h"
-#include "lwip/sys.h"
-#include <lwip/netdb.h>
+#include "esp_camera.h"
 
-#ifdef CONFIG_EXAMPLE_SOCKET_IP_INPUT_STDIN
-#include "addr_from_stdin.h"
-#endif
-
-#if defined(CONFIG_EXAMPLE_IPV4)
-#define HOST_IP_ADDR CONFIG_EXAMPLE_IPV4_ADDR
-#elif defined(CONFIG_EXAMPLE_IPV6)
-#define HOST_IP_ADDR CONFIG_EXAMPLE_IPV6_ADDR
+#if defined(CONFIG_IPV4)
+#define HOST_IP_ADDR CONFIG_SOCKET_IPV4_ADDR
+#elif defined(CONFIG_IPV6)
+#define HOST_IP_ADDR CONFIG_SOCKET_IPV6_ADDR
 #else
 #define HOST_IP_ADDR ""
 #endif
 
-#define PORT CONFIG_EXAMPLE_PORT
+#define PORT CONFIG_SOCKET_PORT
 
-static const char *TAG = "example";
-static const char *payload = "Message from ESP32 ";
+static const char *websocket_tag = "websocket";
+static int32_t sock = 0;
 
+void udp_client_sock_init(void)
+{
+    ESP_LOGI(websocket_tag, "Initializing socket");
+    ESP_LOGI(websocket_tag, "Socket address: %s:%d", HOST_IP_ADDR, PORT);
+
+    int32_t addr_family = 0;
+    int32_t ip_protocol = 0;
+
+#if defined(CONFIG_IPV4)
+    struct sockaddr_in dest_addr;
+    dest_addr.sin_addr.s_addr = inet_addr(HOST_IP_ADDR);
+    dest_addr.sin_family = AF_INET;
+    dest_addr.sin_port = htons(PORT);
+    addr_family = AF_INET;
+    ip_protocol = IPPROTO_IP;
+#elif defined(CONFIG_IPV6)
+    struct sockaddr_in6 dest_addr = { 0 };
+    inet6_aton(HOST_IP_ADDR, &dest_addr.sin6_addr);
+    dest_addr.sin6_family = AF_INET6;
+    dest_addr.sin6_port = htons(PORT);
+    dest_addr.sin6_scope_id = esp_netif_get_netif_impl_index(EXAMPLE_INTERFACE);
+    addr_family = AF_INET6;
+    ip_protocol = IPPROTO_IPV6;
+#endif
+
+    sock = socket(addr_family, SOCK_DGRAM, ip_protocol);
+    if (sock < 0)
+        ESP_LOGE(websocket_tag, "Unable to create socket: errno %d", errno);
+    else
+        ESP_LOGI(websocket_tag, "Socket created, sending to %s:%d", HOST_IP_ADDR, PORT);
+
+    struct timeval timeout;
+    timeout.tv_sec = 10;
+    timeout.tv_usec = 0;
+    setsockopt (sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof timeout);
+}
 
 void udp_client_task(void *pvParameters)
 {
-    char rx_buffer[128];
-    char host_ip[] = HOST_IP_ADDR;
-    int addr_family = 0;
-    int ip_protocol = 0;
+    camera_fb_t *pic = pvParameters;
+    struct sockaddr_in dest_addr;
+    dest_addr.sin_addr.s_addr = inet_addr(HOST_IP_ADDR);
+    dest_addr.sin_family = AF_INET;
+    dest_addr.sin_port = htons(PORT);
 
-    while (1) {
+    ESP_LOGD(websocket_tag, "pic->len: %d", pic->len);
+    int err = sendto(sock, (void*) pic->buf, pic->len, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
+    if (err < 0)
+        ESP_LOGE(websocket_tag, "Error occurred during sending: errno %d", errno);
+    else
+        ESP_LOGI(websocket_tag, "Jpeg binary sent in UDP");
 
-#if defined(CONFIG_EXAMPLE_IPV4)
-        struct sockaddr_in dest_addr;
-        dest_addr.sin_addr.s_addr = inet_addr(HOST_IP_ADDR);
-        dest_addr.sin_family = AF_INET;
-        dest_addr.sin_port = htons(PORT);
-        addr_family = AF_INET;
-        ip_protocol = IPPROTO_IP;
-#elif defined(CONFIG_EXAMPLE_IPV6)
-        struct sockaddr_in6 dest_addr = { 0 };
-        inet6_aton(HOST_IP_ADDR, &dest_addr.sin6_addr);
-        dest_addr.sin6_family = AF_INET6;
-        dest_addr.sin6_port = htons(PORT);
-        dest_addr.sin6_scope_id = esp_netif_get_netif_impl_index(EXAMPLE_INTERFACE);
-        addr_family = AF_INET6;
-        ip_protocol = IPPROTO_IPV6;
-#elif defined(CONFIG_EXAMPLE_SOCKET_IP_INPUT_STDIN)
-        struct sockaddr_storage dest_addr = { 0 };
-        ESP_ERROR_CHECK(get_addr_from_stdin(PORT, SOCK_DGRAM, &ip_protocol, &addr_family, &dest_addr));
-#endif
-
-        int sock = socket(addr_family, SOCK_DGRAM, ip_protocol);
-        if (sock < 0) {
-            ESP_LOGE(TAG, "Unable to create socket: errno %d", errno);
-            break;
-        }
-
-        // Set timeout
-        struct timeval timeout;
-        timeout.tv_sec = 10;
-        timeout.tv_usec = 0;
-        setsockopt (sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof timeout);
-
-        ESP_LOGI(TAG, "Socket created, sending to %s:%d", HOST_IP_ADDR, PORT);
-
-        while (1) {
-            int err = sendto(sock, payload, strlen(payload), 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
-            if (err < 0) {
-                ESP_LOGE(TAG, "Error occurred during sending: errno %d", errno);
-                break;
-            }
-            ESP_LOGI(TAG, "Message sent");
-
-            vTaskDelay(2000 / portTICK_PERIOD_MS);
-        }
-
-        if (sock != -1) {
-            ESP_LOGE(TAG, "Shutting down socket and restarting...");
-            shutdown(sock, 0);
-            close(sock);
-        }
-    }
     vTaskDelete(NULL);
 }

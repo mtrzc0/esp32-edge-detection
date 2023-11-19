@@ -44,5 +44,6 @@ void app_main(void)
 
     ESP_LOGI(app_tag, "Initializing modules");
     wifi_init();
+    udp_client_sock_init();
     camera_init();
 }
