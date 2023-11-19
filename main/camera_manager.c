@@ -28,7 +28,6 @@ static void camera_event_handler(void *arg, esp_event_base_t event_base, int8_t 
         ESP_ERROR_CHECK(ret != pdPASS ? ESP_ERR_NO_MEM : ESP_OK);
     } else if (event_base == CAMERA_EVENTS && event_id == CAMERA_EVENT_PICTURE_TAKEN) {
         ESP_LOGI(camera_tag, "Picture taken! Its size was: %zu bytes", pic->len);
-        // FIXME sending jpeg to linux client
         BaseType_t ret = xTaskCreate(udp_client_task,
                                      camera_tag,
                                      configMINIMAL_STACK_SIZE + 2048,
