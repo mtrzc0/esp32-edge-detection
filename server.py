@@ -1,49 +1,35 @@
-import http.server
-import socketserver
-import os
-from urllib.parse import urlparse
+import asyncio
+import websockets
 from io import BytesIO
 from PIL import Image
 
-# Specify the folder to save the JPEG images
-output_folder = 'output_images'
+async def save_image(data):
+    try:
+        # Convert the binary data to a PIL Image
+        image = Image.open(BytesIO(data))
 
-# Create the output folder if it doesn't exist
-os.makedirs(output_folder, exist_ok=True)
+        # Save the image as JPEG
+        image.save('images/output.jpg', 'JPEG')
 
-class RequestHandler(http.server.SimpleHTTPRequestHandler):
-    def do_POST(self):
-        content_length = int(self.headers['Content-Length'])
-        post_data = self.rfile.read(content_length)
+        print('Image saved successfully')
+    except Exception as e:
+        print(f'Error saving image: {e}')
 
-        # Convert the received data to a PIL Image
-        try:
-            image = Image.open(BytesIO(post_data))
-        except Exception as e:
-            self.send_error(400, f"Error: {str(e)}")
-            return
+async def handle_client(websocket, path):
+    print('Client connected')
 
-        # Generate a unique filename (you may want to implement a more sophisticated naming scheme)
-        filename = os.path.join(output_folder, 'image_{}.jpeg'.format(hash(post_data)))
+    try:
+        async for message in websocket:
+            # Assuming the message received is binary data
+            await save_image(message)
 
-        # Save the image
-        image.save(filename, format='JPEG')
-        print(f"Image saved as: {filename}")
+    except websockets.exceptions.ConnectionClosed:
+        print('Client disconnected')
 
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"Image received and saved successfully")
+start_server = websockets.serve(handle_client, '192.168.43.170', 8765)
 
-if __name__ == "__main__":
-    # Specify the port to run the server on
-    port = 8080
+print('Server is running on ws://192.168.43.170:8765')
 
-    # Set up the server
-    with socketserver.TCPServer(("", port), RequestHandler) as httpd:
-        print(f"Serving on port {port}")
-        try:
-            httpd.serve_forever()
-        except KeyboardInterrupt:
-            pass
-        httpd.server_close()
+asyncio.get_event_loop().run_until_complete(start_server)
+asyncio.get_event_loop().run_forever()
 

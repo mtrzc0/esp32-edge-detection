@@ -1,6 +1,5 @@
 #include <inttypes.h>
 #include "freertos/FreeRTOS.h"
-#include "freertos/event_groups.h"
 #include "sdkconfig.h"
 #include "esp_chip_info.h"
 #include "esp_flash.h"
@@ -10,14 +9,13 @@
 #include "nvs_flash.h"
 #include "wifi_manager.h"
 #include "camera_manager.h"
+#include "websocket_manager.h"
 
 const char *app_tag = "app";
 
 void app_main(void)
 {
     ESP_LOGD(app_tag, "Main application startup\n");
-
-    static EventGroupHandle_t s_app_event_group;
 
     // get info about the soc
     uint32_t flash_size;
