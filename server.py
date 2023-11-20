@@ -2,6 +2,8 @@ import socket
 import binascii
 import os
 import time
+from PIL import Image
+from io import BytesIO
 
 UDP_IP = ""
 UDP_PORT = 8765
@@ -21,11 +23,12 @@ while True:
     # Convert the data to a hex dump
     hex_dump = binascii.hexlify(data).decode('utf-8')
 
-    # Save the hex dump to a text file
     timestamp = time.time()
-    file_path = os.path.join(SAVE_FOLDER, f"received_hexdump_{timestamp}.txt")
+    # Convert Hex dump to JPEG
+    jpeg_image = Image.open(BytesIO(data)).convert("RGB")
 
-    with open(file_path, 'w') as file:
-        file.write(hex_dump)
+    # Save the JPEG image
+    jpeg_path = os.path.join(SAVE_FOLDER, f"received_hexdump_{timestamp}.jpg")
+    jpeg_image.save(jpeg_path)
 
-    print(f"Received and saved hex dump to: {file_path}")
+    print(f"Received and saved hex dump to: {jpeg_path}")
