@@ -6,4 +6,4 @@ sdkconfig.ci
 .idea
 main/cmake-build-debug
 dependencies.lock
-recived_images/
+received_img/

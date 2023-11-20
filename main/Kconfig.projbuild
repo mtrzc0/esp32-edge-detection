@@ -29,7 +29,7 @@ menu "Websocket Configuration"
 
     config SOCKET_IPV4_ADDR
         string "IPV4 Address"
-        default "192.168.0.165"
+        default "192.168.43.170"
         depends on IPV4
         help
             IPV4 address to which the client will send data.
@@ -44,19 +44,8 @@ menu "Websocket Configuration"
     config SOCKET_PORT
         int "Port"
         range 0 65535
-        default 3333
+        default 8765
         help
             The remote port to which the client will send data.
-
-    choice SOCKET_IP_INPUT
-        prompt "Socket source"
-        default SOCKET_IP_INPUT_STRING
-        help
-            Selects the input source of the IP used in the example.
-
-        config SOCKET_IP_INPUT_STRING
-            bool "From string"
-
-    endchoice
 
 endmenu

@@ -8,7 +8,7 @@ from io import BytesIO
 UDP_IP = ""
 UDP_PORT = 8765
 UDP_BUFFER = 32768
-SAVE_FOLDER = "received_data/"
+SAVE_FOLDER = "received_img/"
 
 # Create the save folder if it doesn't exist
 if not os.path.exists(SAVE_FOLDER):
@@ -28,7 +28,7 @@ while True:
     jpeg_image = Image.open(BytesIO(data)).convert("RGB")
 
     # Save the JPEG image
-    jpeg_path = os.path.join(SAVE_FOLDER, f"received_hexdump_{timestamp}.jpg")
+    jpeg_path = os.path.join(SAVE_FOLDER, f"img_{timestamp}.jpg")
     jpeg_image.save(jpeg_path)
 
-    print(f"Received and saved hex dump to: {jpeg_path}")
+    print(f"Received and saved img to: {jpeg_path}")
