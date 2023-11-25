@@ -1,3 +1,9 @@
 [submodule "components/esp32_camera"]
 	path = components/esp32_camera
 	url = https://github.com/espressif/esp32-camera.git
+[submodule "components/edge_detection_model"]
+	path = components/edge_detection_model
+	url = https://github.com/Sofi-240/canny_TF.git
+[submodule "components/esp_dl"]
+	path = components/esp_dl
+	url = https://github.com/espressif/esp-dl.git

@@ -14,7 +14,6 @@ menu "Websocket Configuration"
 
     choice IP_MODE
         prompt "IP Version"
-        depends on SOCKET_IP_INPUT_STRING
         help
             Example can use either IPV4 or IPV6.
 

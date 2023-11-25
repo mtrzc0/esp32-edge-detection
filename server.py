@@ -5,7 +5,7 @@ import time
 from PIL import Image
 from io import BytesIO
 
-UDP_IP = ""
+UDP_IP = "" # Listen on all interfaces
 UDP_PORT = 8765
 UDP_BUFFER = 32768
 SAVE_FOLDER = "received_img/"
@@ -24,8 +24,13 @@ while True:
     hex_dump = binascii.hexlify(data).decode('utf-8')
 
     timestamp = time.time()
-    # Convert Hex dump to JPEG
-    jpeg_image = Image.open(BytesIO(data)).convert("RGB")
+
+    # Convert Hex dump to JPEG and resize to 517x517 format
+    try:
+        jpeg_image = Image.open(BytesIO(data)).convert("RGB").resize((517, 517))
+    except OSError:
+        print("Received invalid image. Skipping...")
+        continue
 
     # Save the JPEG image
     jpeg_path = os.path.join(SAVE_FOLDER, f"img_{timestamp}.jpg")
