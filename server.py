@@ -25,9 +25,9 @@ while True:
 
     timestamp = time.time()
 
-    # Convert Hex dump to JPEG and resize to 517x517 format
+    # Convert Hex dump to JPEG and resize to 512x512 format
     try:
-        jpeg_image = Image.open(BytesIO(data)).convert("RGB").resize((517, 517))
+        jpeg_image = Image.open(BytesIO(data)).convert("RGB").resize((512, 512))
     except OSError:
         print("Received invalid image. Skipping...")
         continue

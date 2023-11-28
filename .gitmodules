@@ -7,3 +7,6 @@
 [submodule "components/esp_dl"]
 	path = components/esp_dl
 	url = https://github.com/espressif/esp-dl.git
+[submodule "components/tensorflow"]
+	path = components/tensorflow
+	url = https://github.com/tensorflow/tensorflow.git
