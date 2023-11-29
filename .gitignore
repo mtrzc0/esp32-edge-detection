@@ -6,3 +6,5 @@ sdkconfig.ci
 .idea
 main/cmake-build-debug
 dependencies.lock
+venv
+.vscode
