@@ -1,6 +1,6 @@
-[submodule "components/esp32-camera-driver"]
-	path = components/esp32-camera-driver
-	url = git@github.com:mefjak000/esp32-cam-driver.git
 [submodule "components/esp-tflite-micro"]
 	path = components/esp-tflite-micro
 	url = git@github.com:espressif/esp-tflite-micro.git
+[submodule "components/esp32-cam-driver"]
+	path = components/esp32-cam-driver
+	url = git@github.com:mefjak000/esp32-cam-driver.git

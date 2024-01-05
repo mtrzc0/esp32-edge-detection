@@ -10,6 +10,7 @@
 #include "wifi_manager.h"
 #include "camera_manager.h"
 #include "websocket_manager.h"
+#include "ai_manager.h"
 
 const char *app_tag = "app";
 
@@ -46,4 +47,5 @@ void app_main(void)
     wifi_init();
     udp_client_sock_init();
     camera_init();
+    ai_init();
 }

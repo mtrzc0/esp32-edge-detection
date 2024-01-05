@@ -4,10 +4,13 @@
 #include "task_prio.h"
 #include "websocket_manager.h"
 
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+
 static const char *camera_tag = "camera";
 
 ESP_EVENT_DEFINE_BASE(CAMERA_EVENTS);
-static camera_fb_t *pic;
+camera_fb_t *pic;
 
 static void camera_event_handler(void *arg, esp_event_base_t event_base, int8_t event_id, void *event_data)
 {
@@ -16,7 +19,9 @@ static void camera_event_handler(void *arg, esp_event_base_t event_base, int8_t 
     if (event_base == CAMERA_EVENTS && event_id == CAMERA_EVENT_INIT_FAIL)
     {
         ESP_LOGE(camera_tag, "Camera Init Failed");
-    } else if (event_base == CAMERA_EVENTS && event_id == CAMERA_EVENT_READY) {
+    }
+    else if (event_base == CAMERA_EVENTS && event_id == CAMERA_EVENT_READY)
+    {
         ESP_LOGI(camera_tag, "Camera ready");
         // create task which takes picture
         BaseType_t ret = xTaskCreate(take_picture,
@@ -26,7 +31,9 @@ static void camera_event_handler(void *arg, esp_event_base_t event_base, int8_t 
                                      TP_TAKE_PIC,
                                      NULL);
         ESP_ERROR_CHECK(ret != pdPASS ? ESP_ERR_NO_MEM : ESP_OK);
-    } else if (event_base == CAMERA_EVENTS && event_id == CAMERA_EVENT_PICTURE_TAKEN) {
+    }
+    else if (event_base == CAMERA_EVENTS && event_id == CAMERA_EVENT_PICTURE_TAKEN)
+    {
         ESP_LOGI(camera_tag, "Picture taken! Its size was: %zu bytes", pic->len);
         BaseType_t ret = xTaskCreate(udp_client_task,
                                      camera_tag,
