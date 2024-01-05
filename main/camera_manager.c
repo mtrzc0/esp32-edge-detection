@@ -48,9 +48,10 @@ static void camera_event_handler(void *arg, esp_event_base_t event_base, int8_t 
 esp_err_t camera_init(void)
 {
     // register all camera events
-    esp_event_handler_register(CAMERA_EVENTS,
+    esp_event_handler_instance_register(CAMERA_EVENTS,
                                CAMERA_EVENT_PICTURE_TAKEN,
                                (esp_event_handler_t) camera_event_handler,
+                               NULL,
                                NULL);
 
     esp_event_handler_instance_register(CAMERA_EVENTS,
