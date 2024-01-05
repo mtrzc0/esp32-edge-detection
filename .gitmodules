@@ -1,9 +1,6 @@
-[submodule "components/esp_dl"]
-	path = components/esp_dl
-	url = https://github.com/espressif/esp-dl.git
-[submodule "components/tensorflow"]
-	path = components/tensorflow
-	url = https://github.com/tensorflow/tensorflow.git
-[submodule "components/esp32_camera_driver"]
-	path = components/esp32_camera_driver
+[submodule "components/esp32-camera-driver"]
+	path = components/esp32-camera-driver
 	url = git@github.com:mefjak000/esp32-cam-driver.git
+[submodule "components/esp-tflite-micro"]
+	path = components/esp-tflite-micro
+	url = git@github.com:espressif/esp-tflite-micro.git
