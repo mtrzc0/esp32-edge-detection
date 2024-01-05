@@ -7,8 +7,7 @@
 #include <sys/param.h>
 #include <string.h>
 
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+
 
 // support IDF 5.x
 #ifndef portTICK_RATE_MS
@@ -111,5 +110,7 @@ static camera_config_t camera_config = {
 static void camera_event_handler(void *arg, esp_event_base_t event_base, int8_t event_id, void *event_data);
 esp_err_t camera_init();
 void take_picture(void *pvParameters);
+
+extern camera_fb_t *pic;
 
 #endif //ESP32_CAM_SCANNER_CAMERA_MANAGER_H

@@ -2,5 +2,9 @@ idf_component_register(SRCS "main.c"
                             "wifi_manager.c"
                             "websocket_manager.c"
                             "camera_manager.c"
+                            "ai_manager.cc"
                     INCLUDE_DIRS "."
-                                 "../components/")
+                                 "../components/esp32-cam-driver/driver/"
+                                 "../components/esp32-cam-driver/driver/private_include"
+                                 "../components/ai_model/include"
+                                 "../components/esp-tflite-micro/")
