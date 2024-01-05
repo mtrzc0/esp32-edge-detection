@@ -9,3 +9,4 @@ dependencies.lock
 venv
 .vscode
 received_img/*
+managed_components/*
