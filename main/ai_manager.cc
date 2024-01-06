@@ -65,6 +65,7 @@ extern "C" void ai_init()
         return;
     }
 
+    // allocate buffer for tensor arena in SPIRAM
     // FIXME: tensor arena size is not correct
     tensor_arena = (uint8_t *) heap_caps_malloc(kTensorArenaSize, MALLOC_CAP_SPIRAM);
     if (tensor_arena == nullptr)
