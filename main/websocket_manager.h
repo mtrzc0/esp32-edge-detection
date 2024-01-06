@@ -4,7 +4,7 @@
 #include <esp_http_client.h>
 #include "esp_camera.h"
 
-void udp_client_sock_init(void);
-void udp_client_task(void *pvParameters);
+void websocket_init(void);
+void websocket_send(void *pvParameters);
 
 #endif //ESP32_CAM_SCANNER_WEBSOCKET_MANAGER_H

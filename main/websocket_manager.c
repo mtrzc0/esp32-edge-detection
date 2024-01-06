@@ -20,7 +20,7 @@
 static const char *websocket_tag = "websocket";
 static int32_t sock = 0;
 
-void udp_client_sock_init(void)
+void websocket_init(void)
 {
     ESP_LOGI(websocket_tag, "Initializing socket");
     ESP_LOGI(websocket_tag, "Socket address: %s:%d", HOST_IP_ADDR, PORT);
@@ -57,7 +57,7 @@ void udp_client_sock_init(void)
     setsockopt (sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof timeout);
 }
 
-void udp_client_task(void *pvParameters)
+void websocket_send(void *pvParameters)
 {
     camera_fb_t *pic = pvParameters;
     struct sockaddr_in dest_addr;
