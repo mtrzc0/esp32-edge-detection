@@ -24,7 +24,8 @@ namespace
     tflite::MicroInterpreter *interpreter = nullptr;
     TfLiteTensor *input, *output = nullptr;
 
-    constexpr int kTensorArenaSize = 125 * 1024;
+    // FIXME: check if this is correct size for tensor arena, should be hned_tflite_len?
+    constexpr int kTensorArenaSize = 50 * 1024;
     uint8_t *tensor_arena = nullptr;
 }
 
@@ -64,14 +65,19 @@ extern "C" void ai_init()
         return;
     }
 
-    // FIXME: tensor arena size is too small?
-    tensor_arena = (uint8_t *) heap_caps_malloc(hned_tflite_len, MALLOC_CAP_SPIRAM);
+    // FIXME: tensor arena size is not correct
+    tensor_arena = (uint8_t *) heap_caps_malloc(kTensorArenaSize, MALLOC_CAP_SPIRAM);
     if (tensor_arena == nullptr)
     {
-        ESP_LOGD(ai_tag, "Couldn't allocate memory of %d bytes\n", hned_tflite_len);
+        ESP_LOGD(ai_tag, "Couldn't allocate memory of %d bytes\n", kTensorArenaSize);
         return;
     }
+    else
+    {
+        ESP_LOGD(ai_tag, "Allocated memory of %d bytes\n", kTensorArenaSize);
+    }
 
+    // FIXME: check if this is correct setup
     static tflite::MicroMutableOpResolver<5> micro_op_resolver;
     micro_op_resolver.AddConv2D();
     micro_op_resolver.AddAveragePool2D();

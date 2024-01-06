@@ -94,7 +94,7 @@ void camera_take(void *pvParameters)
     while(1)
     {
         pic = esp_camera_fb_get();
-        ESP_LOGD(camera_tag, "pic->len: %d", pic->len);
+        ESP_LOGD(camera_tag, "picture size: %dB", pic->len);
         esp_event_post(CAMERA_EVENTS,
                        CAMERA_EVENT_PICTURE_READY,
                        NULL,
