@@ -7,6 +7,7 @@
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/schema/schema_generated.h"
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
+
 #include "model_data.h"
 
 #include "camera_manager.h"
@@ -25,7 +26,7 @@ namespace
     TfLiteTensor *input, *output = nullptr;
 
     // FIXME: check if this is correct size for tensor arena, should be hned_tflite_len?
-    constexpr int kTensorArenaSize = 50 * 1024;
+    const int kTensorArenaSize = KTENSORSARENA_BYTES * 1024 + hned_tflite_len;
     uint8_t *tensor_arena = nullptr;
 }
 
@@ -40,7 +41,7 @@ extern "C" void ai_event_handler(void *arg, esp_event_base_t event_base, int32_t
                                      configMINIMAL_STACK_SIZE + 2048,
                                      pic,
                                      TP_WEBSOCKET_SEND,
-                                     NULL);
+                                     nullptr);
         ESP_ERROR_CHECK(ret != pdPASS ? ESP_ERR_NO_MEM : ESP_OK);
         ESP_LOGI(ai_tag, "AI done");
     }
@@ -55,8 +56,8 @@ extern "C" void ai_init()
     esp_event_handler_instance_register(AI_EVENTS,
                                         AI_EVENT_DONE,
                                         (esp_event_handler_t) ai_event_handler,
-                                        NULL,
-                                        NULL);
+                                        nullptr,
+                                        nullptr);
 
     model = tflite::GetModel(hned_tflite);
     if (model->version() != TFLITE_SCHEMA_VERSION)
@@ -78,13 +79,28 @@ extern "C" void ai_init()
         ESP_LOGD(ai_tag, "Allocated memory of %d bytes\n", kTensorArenaSize);
     }
 
-    // FIXME: check if this is correct setup
-    static tflite::MicroMutableOpResolver<5> micro_op_resolver;
+    // TODO: check if this is correct setup
+    static tflite::MicroMutableOpResolver<20> micro_op_resolver;
     micro_op_resolver.AddConv2D();
     micro_op_resolver.AddAveragePool2D();
     micro_op_resolver.AddDepthwiseConv2D();
     micro_op_resolver.AddReshape();
     micro_op_resolver.AddSoftmax();
+    micro_op_resolver.AddMul();
+    micro_op_resolver.AddSub();
+    micro_op_resolver.AddPad();
+    micro_op_resolver.AddTranspose();
+    micro_op_resolver.AddWhile();
+    micro_op_resolver.AddConcatenation();
+    micro_op_resolver.AddStridedSlice();
+    micro_op_resolver.AddCast();
+    micro_op_resolver.AddResizeBilinear();
+    micro_op_resolver.AddLogistic();
+    micro_op_resolver.AddLess();
+    micro_op_resolver.AddAdd();
+    micro_op_resolver.AddGather();
+    micro_op_resolver.AddEqual();
+    micro_op_resolver.AddIf();
 
     static tflite::MicroInterpreter static_interpreter(model,
                                                        micro_op_resolver,
@@ -113,7 +129,7 @@ extern "C" void ai_run(void *pvParameters)
     {
         esp_event_post(AI_EVENTS,
                        AI_EVENT_FAIL,
-                       NULL,
+                       nullptr,
                        0,
                        portMAX_DELAY);
     }
@@ -121,7 +137,7 @@ extern "C" void ai_run(void *pvParameters)
     {
         esp_event_post(AI_EVENTS,
                        AI_EVENT_DONE,
-                       NULL,
+                       nullptr,
                        0,
                        portMAX_DELAY);
         // save the result

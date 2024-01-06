@@ -3,6 +3,8 @@
 
 #include "esp_event.h"
 
+#define KTENSORSARENA_BYTES 50
+
 typedef enum {
     AI_EVENT_DONE,
     AI_EVENT_FAIL,
