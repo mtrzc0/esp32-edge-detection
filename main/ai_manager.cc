@@ -8,28 +8,55 @@
 #include "tensorflow/lite/schema/schema_generated.h"
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
 #include "model_data.h"
-#include "esp_camera.h"
 
 #include "camera_manager.h"
 #include "ai_manager.h"
+#include "websocket_manager.h"
+#include "task_prio.h"
 
 static const char *ai_tag = "ai";
+
+ESP_EVENT_DEFINE_BASE(AI_EVENTS);
 
 namespace
 {
     const tflite::Model *model = nullptr;
     tflite::MicroInterpreter *interpreter = nullptr;
-    TfLiteTensor *input = nullptr;
+    TfLiteTensor *input, *output = nullptr;
 
-    constexpr int kTensorArenaSize = 60 * 1024;
-    static uint8_t *tensor_arena;
+    constexpr int kTensorArenaSize = 125 * 1024;
+    uint8_t *tensor_arena = nullptr;
+}
 
-    constexpr int kImageSize = 512;
-    constexpr int kImageChannels = 3;
+extern "C" void ai_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
+{
+    (void) arg;
+    (void) event_data;
+    if (event_base == AI_EVENTS && event_id == AI_EVENT_DONE)
+    {
+        BaseType_t ret = xTaskCreate(websocket_send,
+                                     ai_tag,
+                                     configMINIMAL_STACK_SIZE + 2048,
+                                     pic,
+                                     TP_WEBSOCKET_SEND,
+                                     NULL);
+        ESP_ERROR_CHECK(ret != pdPASS ? ESP_ERR_NO_MEM : ESP_OK);
+        ESP_LOGI(ai_tag, "AI done");
+    }
+    else if (event_base == AI_EVENTS && event_id == AI_EVENT_FAIL)
+    {
+        ESP_LOGE(ai_tag, "AI failed");
+    }
 }
 
 extern "C" void ai_init()
 {
+    esp_event_handler_instance_register(AI_EVENTS,
+                                        AI_EVENT_DONE,
+                                        (esp_event_handler_t) ai_event_handler,
+                                        NULL,
+                                        NULL);
+
     model = tflite::GetModel(hned_tflite);
     if (model->version() != TFLITE_SCHEMA_VERSION)
     {
@@ -37,10 +64,11 @@ extern "C" void ai_init()
         return;
     }
 
+    // FIXME: tensor arena size is too small?
+    tensor_arena = (uint8_t *) heap_caps_malloc(hned_tflite_len, MALLOC_CAP_SPIRAM);
     if (tensor_arena == nullptr)
     {
-        tensor_arena = (uint8_t *) heap_caps_malloc(kTensorArenaSize, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
-        ESP_LOGD(ai_tag, "Could not allocate arena");
+        ESP_LOGD(ai_tag, "Couldn't allocate memory of %d bytes\n", hned_tflite_len);
         return;
     }
 
@@ -55,6 +83,7 @@ extern "C" void ai_init()
                                                        micro_op_resolver,
                                                        tensor_arena,
                                                        kTensorArenaSize);
+    // FIXME: AllocateTensors() fails
     interpreter = &static_interpreter;
     TfLiteStatus allocate_status = interpreter->AllocateTensors();
     if (allocate_status != kTfLiteOk)
@@ -66,22 +95,33 @@ extern "C" void ai_init()
     input = interpreter->input(0);
 }
 
-extern "C" void ai_run()
+extern "C" void ai_run(void *pvParameters)
 {
+    (void) pvParameters;
     input->data.uint8 = pic->buf;
 
     // run the model with img data
     TfLiteStatus invoke_status = interpreter->Invoke();
     if (invoke_status != kTfLiteOk)
     {
-        ESP_LOGD(ai_tag, "Invoke failed");
-        return;
+        esp_event_post(AI_EVENTS,
+                       AI_EVENT_FAIL,
+                       NULL,
+                       0,
+                       portMAX_DELAY);
     }
-
-    // save the result
-    TfLiteTensor *output = interpreter->output(0);
-    // avoid watchdog trigger
-    vTaskDelay(1);
-
-    pic->buf = output->data.uint8;
+    else
+    {
+        esp_event_post(AI_EVENTS,
+                       AI_EVENT_DONE,
+                       NULL,
+                       0,
+                       portMAX_DELAY);
+        // save the result
+        output = interpreter->output(0);
+        // avoid watchdog trigger
+        vTaskDelay(1);
+        // update picture buffer
+        pic->buf = output->data.uint8;
+    }
 }

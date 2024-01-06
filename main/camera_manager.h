@@ -1,3 +1,5 @@
+#include <sys/cdefs.h>
+
 #ifndef ESP32_CAM_SCANNER_CAMERA_MANAGER_H
 #define ESP32_CAM_SCANNER_CAMERA_MANAGER_H
 
@@ -67,7 +69,7 @@
 #endif
 
 typedef enum {
-    CAMERA_EVENT_PICTURE_TAKEN,
+    CAMERA_EVENT_PICTURE_READY,
     CAMERA_EVENT_READY,
     CAMERA_EVENT_INIT_FAIL,
     CAMERA_EVENT_ANY
@@ -108,8 +110,8 @@ static camera_config_t camera_config = {
 };
 
 static void camera_event_handler(void *arg, esp_event_base_t event_base, int8_t event_id, void *event_data);
-esp_err_t camera_init();
-void take_picture(void *pvParameters);
+esp_err_t camera_init(void);
+void camera_take(void *pvParameters);
 
 extern camera_fb_t *pic;
 

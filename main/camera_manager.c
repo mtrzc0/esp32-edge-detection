@@ -1,8 +1,10 @@
+#include <sys/cdefs.h>
 #include <esp_log.h>
 #include <esp_err.h>
+
+#include "ai_manager.h"
 #include "camera_manager.h"
 #include "task_prio.h"
-#include "websocket_manager.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -24,22 +26,21 @@ static void camera_event_handler(void *arg, esp_event_base_t event_base, int8_t 
     {
         ESP_LOGI(camera_tag, "Camera ready");
         // create task which takes picture
-        BaseType_t ret = xTaskCreate(take_picture,
+        BaseType_t ret = xTaskCreate(camera_take,
                                      camera_tag,
                                      configMINIMAL_STACK_SIZE + 2048,
                                      NULL,
-                                     TP_TAKE_PIC,
+                                     TP_CAMERA_TAKE,
                                      NULL);
         ESP_ERROR_CHECK(ret != pdPASS ? ESP_ERR_NO_MEM : ESP_OK);
     }
-    else if (event_base == CAMERA_EVENTS && event_id == CAMERA_EVENT_PICTURE_TAKEN)
+    else if (event_base == CAMERA_EVENTS && event_id == CAMERA_EVENT_PICTURE_READY)
     {
-        ESP_LOGI(camera_tag, "Picture taken! Its size was: %zu bytes", pic->len);
-        BaseType_t ret = xTaskCreate(udp_client_task,
+        BaseType_t ret = xTaskCreate(ai_run,
                                      camera_tag,
                                      configMINIMAL_STACK_SIZE + 2048,
                                      pic,
-                                     TP_SOCKET_SEND_PIC,
+                                     TP_AI_RUN,
                                      NULL);
         ESP_ERROR_CHECK(ret != pdPASS ? ESP_ERR_NO_MEM : ESP_OK);
     }
@@ -49,7 +50,7 @@ esp_err_t camera_init(void)
 {
     // register all camera events
     esp_event_handler_instance_register(CAMERA_EVENTS,
-                               CAMERA_EVENT_PICTURE_TAKEN,
+                               CAMERA_EVENT_PICTURE_READY,
                                (esp_event_handler_t) camera_event_handler,
                                NULL,
                                NULL);
@@ -75,7 +76,9 @@ esp_err_t camera_init(void)
                           0,
                           portMAX_DELAY);
         return ret;
-    } else {
+    }
+    else
+    {
         esp_event_post(CAMERA_EVENTS,
                           CAMERA_EVENT_READY,
                           NULL,
@@ -85,16 +88,15 @@ esp_err_t camera_init(void)
     }
 }
 
-void take_picture(void *pvParameters)
+void camera_take(void *pvParameters)
 {
     (void) pvParameters;
-    for(;;)
+    while(1)
     {
-        ESP_LOGI(camera_tag, "Taking picture...");
         pic = esp_camera_fb_get();
         ESP_LOGD(camera_tag, "pic->len: %d", pic->len);
         esp_event_post(CAMERA_EVENTS,
-                       CAMERA_EVENT_PICTURE_TAKEN,
+                       CAMERA_EVENT_PICTURE_READY,
                        NULL,
                        0,
                        portMAX_DELAY);
