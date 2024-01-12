@@ -5,7 +5,8 @@
 #include "esp_log.h"
 #include "lwip/err.h"
 #include "lwip/sockets.h"
-#include "esp_camera.h"
+#include "camera_manager.h"
+#include "websocket_manager.h"
 
 #if defined(CONFIG_IPV4)
 #define HOST_IP_ADDR CONFIG_SOCKET_IPV4_ADDR
@@ -20,8 +21,11 @@
 static const char *websocket_tag = "websocket";
 static int32_t sock = 0;
 
+static SemaphoreHandle_t websocket_mutex;
+
 void websocket_init(void)
 {
+    websocket_mutex = xSemaphoreCreateMutex();
     ESP_LOGI(websocket_tag, "Initializing socket");
     ESP_LOGI(websocket_tag, "Socket address: %s:%d", HOST_IP_ADDR, PORT);
 
@@ -60,17 +64,24 @@ void websocket_init(void)
 void websocket_send(void *pvParameters)
 {
     camera_fb_t *pic = pvParameters;
+    xSemaphoreTake(websocket_mutex, portMAX_DELAY);
+    if (pic == NULL)
+    {
+        ESP_LOGE(websocket_tag, "Picture buffer is NULL");
+        vTaskDelete(NULL);
+    }
     struct sockaddr_in dest_addr;
     dest_addr.sin_addr.s_addr = inet_addr(HOST_IP_ADDR);
     dest_addr.sin_family = AF_INET;
     dest_addr.sin_port = htons(PORT);
 
-    ESP_LOGD(websocket_tag, "pic->len: %d", pic->len);
+    ESP_LOGD(websocket_tag, "Picture size is %d bytes", pic->len);
     int err = sendto(sock, (void*) pic->buf, pic->len, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
     if (err < 0)
         ESP_LOGE(websocket_tag, "Error occurred during sending: errno %d", errno);
     else
         ESP_LOGI(websocket_tag, "JPEG binary sent in UDP");
 
+    xSemaphoreGive(websocket_mutex);
     vTaskDelete(NULL);
 }

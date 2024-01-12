@@ -2,12 +2,11 @@
 #define ESP32_CAM_SCANNER_AI_MANAGER_H
 
 #include "esp_event.h"
-
-#define KTENSORSARENA_BYTES 50
+#include "esp_camera.h"
 
 typedef enum {
-    AI_EVENT_DONE,
-    AI_EVENT_FAIL,
+    AI_EVENT_TASK_DONE,
+    AI_EVENT_TASK_FAIL,
     AI_EVENT_ANY
 } ai_events_t;
 
@@ -17,7 +16,7 @@ ESP_EVENT_DECLARE_BASE(AI_EVENTS);
 extern "C" {
 #endif
     void ai_init(void);
-    void ai_run(void *pvParameters);
+    void ai_task(void *pvParameters);
 #ifdef __cplusplus
 }
 #endif

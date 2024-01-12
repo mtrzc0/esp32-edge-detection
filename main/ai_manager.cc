@@ -3,12 +3,13 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/semphr.h"
 
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/schema/schema_generated.h"
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
 
-#include "model_data.h"
+#include "model_data_test.h"
 
 #include "camera_manager.h"
 #include "ai_manager.h"
@@ -26,16 +27,24 @@ namespace
     TfLiteTensor *input, *output = nullptr;
 
     // FIXME: check if this is correct size for tensor arena, should be hned_tflite_len?
-    const int kTensorArenaSize = KTENSORSARENA_BYTES * 1024 + hned_tflite_len;
+    // tesor arena should be 1 (img) * (channel) * (width) * (height)
+    const int kTensorArenaSize = 3 * 512 * 512 * 3;
     uint8_t *tensor_arena = nullptr;
+    SemaphoreHandle_t ai_mutex;
+    camera_fb_t *pic;
 }
 
 extern "C" void ai_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
     (void) arg;
     (void) event_data;
-    if (event_base == AI_EVENTS && event_id == AI_EVENT_DONE)
+    if (event_base == AI_EVENTS && event_id == AI_EVENT_TASK_FAIL) {
+        ESP_LOGE(ai_tag, "Task failed");
+    }
+    else if (event_base == AI_EVENTS && event_id == AI_EVENT_TASK_DONE)
     {
+        ESP_LOGI(ai_tag, "Sending picture");
+        ESP_LOGD(ai_tag, "Picture size before sending is %d bytes at address %p", pic->len, pic);
         BaseType_t ret = xTaskCreate(websocket_send,
                                      ai_tag,
                                      configMINIMAL_STACK_SIZE + 2048,
@@ -43,22 +52,25 @@ extern "C" void ai_event_handler(void *arg, esp_event_base_t event_base, int32_t
                                      TP_WEBSOCKET_SEND,
                                      nullptr);
         ESP_ERROR_CHECK(ret != pdPASS ? ESP_ERR_NO_MEM : ESP_OK);
-        ESP_LOGI(ai_tag, "AI done");
     }
-    else if (event_base == AI_EVENTS && event_id == AI_EVENT_FAIL)
-    {
-        ESP_LOGE(ai_tag, "AI failed");
-    }
+
 }
 
 extern "C" void ai_init()
 {
     esp_event_handler_instance_register(AI_EVENTS,
-                                        AI_EVENT_DONE,
+                                        AI_EVENT_TASK_DONE,
                                         (esp_event_handler_t) ai_event_handler,
                                         nullptr,
                                         nullptr);
 
+    esp_event_handler_instance_register(AI_EVENTS,
+                                        AI_EVENT_TASK_FAIL,
+                                        (esp_event_handler_t) ai_event_handler,
+                                        nullptr,
+                                        nullptr);
+
+    ai_mutex = xSemaphoreCreateMutex();
     model = tflite::GetModel(hned_tflite);
     if (model->version() != TFLITE_SCHEMA_VERSION)
     {
@@ -74,10 +86,7 @@ extern "C" void ai_init()
         ESP_LOGD(ai_tag, "Couldn't allocate memory of %d bytes\n", kTensorArenaSize);
         return;
     }
-    else
-    {
-        ESP_LOGD(ai_tag, "Allocated memory of %d bytes\n", kTensorArenaSize);
-    }
+    ESP_LOGD(ai_tag, "Allocated memory of %d bytes\n", kTensorArenaSize);
 
     // TODO: check if this is correct setup
     static tflite::MicroMutableOpResolver<20> micro_op_resolver;
@@ -112,39 +121,45 @@ extern "C" void ai_init()
     if (allocate_status != kTfLiteOk)
     {
         ESP_LOGD(ai_tag, "AllocateTensors() failed");
-        return;
     }
 
     input = interpreter->input(0);
 }
 
-extern "C" void ai_run(void *pvParameters)
+extern "C" void ai_task(void *pvParameters)
 {
-    (void) pvParameters;
+    pic = (camera_fb_t *) pvParameters;
+    ESP_LOGD(ai_tag, "Running on picture of size %d at address %p", pic->len, pic);
     input->data.uint8 = pic->buf;
+    input->bytes = pic->len;
 
+    xSemaphoreTake(ai_mutex, portMAX_DELAY);
     // run the model with img data
     TfLiteStatus invoke_status = interpreter->Invoke();
     if (invoke_status != kTfLiteOk)
     {
         esp_event_post(AI_EVENTS,
-                       AI_EVENT_FAIL,
+                       AI_EVENT_TASK_FAIL,
                        nullptr,
                        0,
                        portMAX_DELAY);
     }
     else
     {
-        esp_event_post(AI_EVENTS,
-                       AI_EVENT_DONE,
-                       nullptr,
-                       0,
-                       portMAX_DELAY);
         // save the result
         output = interpreter->output(0);
         // avoid watchdog trigger
         vTaskDelay(1);
         // update picture buffer
         pic->buf = output->data.uint8;
+        pic->len = output->bytes;
+        ESP_LOGD(ai_tag, "Picture size after processing is %d bytes at address %p", pic->len, pic);
+        esp_event_post(AI_EVENTS,
+                       AI_EVENT_TASK_DONE,
+                       nullptr,
+                       0,
+                       portMAX_DELAY);
     }
+    xSemaphoreGive(ai_mutex);
+    vTaskDelete(nullptr);
 }
