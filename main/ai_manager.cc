@@ -43,8 +43,8 @@ extern "C" void ai_event_handler(void *arg, esp_event_base_t event_base, int32_t
     }
     else if (event_base == AI_EVENTS && event_id == AI_EVENT_TASK_DONE)
     {
-        ESP_LOGI(ai_tag, "Sending picture");
         ESP_LOGD(ai_tag, "Picture size before sending is %d bytes at address %p", pic->len, pic);
+        // pin sending image to core 1
         BaseType_t ret = xTaskCreate(websocket_send,
                                      ai_tag,
                                      configMINIMAL_STACK_SIZE + 2048,
