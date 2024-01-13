@@ -22,10 +22,10 @@ static void camera_event_handler(void *arg, esp_event_base_t event_base, int8_t 
     {
         ESP_LOGE(camera_tag, "Camera Init Failed");
     }
-    else if (event_base == CAMERA_EVENTS && event_id == CAMERA_EVENT_INIT_DONE)
+    else if (event_base == CAMERA_EVENTS && event_id == CAMERA_EVENT_TASK_START)
     {
         ESP_LOGI(camera_tag, "Camera ready");
-        // create task which takes picture
+        // pin camera task to core 0
         BaseType_t ret = xTaskCreate(camera_task,
                                      camera_tag,
                                      configMINIMAL_STACK_SIZE + 2048,
@@ -34,9 +34,10 @@ static void camera_event_handler(void *arg, esp_event_base_t event_base, int8_t 
                                      NULL);
         ESP_ERROR_CHECK(ret != pdPASS ? ESP_ERR_NO_MEM : ESP_OK);
     }
-    else if (event_base == CAMERA_EVENTS && event_id == CAMERA_EVENT_PICTURE_READY)
+    else if (event_base == CAMERA_EVENTS && event_id == CAMERA_EVENT_TASK_DONE)
     {
         ESP_LOGI(camera_tag, "Picture ready");
+        // pin ai task to core 0
         BaseType_t ret = xTaskCreate(ai_task,
                                      camera_tag,
                                      configMINIMAL_STACK_SIZE + 2048,
@@ -51,7 +52,7 @@ esp_err_t camera_init(void)
 {
     // register all camera events
     esp_event_handler_instance_register(CAMERA_EVENTS,
-                                        CAMERA_EVENT_PICTURE_READY,
+                                        CAMERA_EVENT_TASK_DONE,
                                         (esp_event_handler_t) camera_event_handler,
                                         NULL,
                                         NULL);
@@ -63,7 +64,7 @@ esp_err_t camera_init(void)
                                         NULL);
 
     esp_event_handler_instance_register(CAMERA_EVENTS,
-                                        CAMERA_EVENT_INIT_DONE,
+                                        CAMERA_EVENT_TASK_START,
                                         (esp_event_handler_t) camera_event_handler,
                                         NULL,
                                         NULL);
@@ -81,7 +82,7 @@ esp_err_t camera_init(void)
     else
     {
         esp_event_post(CAMERA_EVENTS,
-                          CAMERA_EVENT_INIT_DONE,
+                          CAMERA_EVENT_TASK_START,
                           NULL,
                           0,
                           portMAX_DELAY);
@@ -92,16 +93,13 @@ esp_err_t camera_init(void)
 void camera_task(void *pvParameters)
 {
     (void) pvParameters;
-    while(1)
-    {
-        pic = esp_camera_fb_get();
-        ESP_LOGD(camera_tag, "Picture size is %d bytes at address %p", pic->len, pic);
-        esp_event_post(CAMERA_EVENTS,
-                       CAMERA_EVENT_PICTURE_READY,
-                       NULL,
-                       0,
-                       portMAX_DELAY);
-        esp_camera_fb_return(pic);
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
-    }
+    pic = esp_camera_fb_get();
+    ESP_LOGD(camera_tag, "Picture size is %d bytes at address %p", pic->len, pic);
+    esp_event_post(CAMERA_EVENTS,
+                   CAMERA_EVENT_TASK_DONE,
+                   NULL,
+                   0,
+                   portMAX_DELAY);
+    esp_camera_fb_return(pic);
+    vTaskDelete(NULL);
 }

@@ -1,12 +1,17 @@
 #include <sys/param.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
+#include <http_parser.h>
+
 #include "esp_system.h"
 #include "esp_log.h"
 #include "lwip/err.h"
 #include "lwip/sockets.h"
+
 #include "camera_manager.h"
 #include "websocket_manager.h"
+
+#include "esp_camera.h"
 
 #if defined(CONFIG_IPV4)
 #define HOST_IP_ADDR CONFIG_SOCKET_IPV4_ADDR
@@ -49,16 +54,26 @@ void websocket_init(void)
     ip_protocol = IPPROTO_IPV6;
 #endif
 
-    sock = socket(addr_family, SOCK_DGRAM, ip_protocol);
+    sock = socket(addr_family, SOCK_STREAM, ip_protocol);
     if (sock < 0)
+    {
         ESP_LOGE(websocket_tag, "Unable to create socket: errno %d", errno);
-    else
-        ESP_LOGI(websocket_tag, "Socket created, sending to %s:%d", HOST_IP_ADDR, PORT);
+        return;
+    }
+    ESP_LOGI(websocket_tag, "Socket created, sending to %s:%d", HOST_IP_ADDR, PORT);
 
-    struct timeval timeout;
-    timeout.tv_sec = 10;
-    timeout.tv_usec = 0;
-    setsockopt (sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof timeout);
+//    struct timeval timeout;
+//    timeout.tv_sec = 10;
+//    timeout.tv_usec = 0;
+//    setsockopt (sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof timeout);
+
+    int32_t conn = connect(sock, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
+    if (conn != 0)
+    {
+        ESP_LOGE(websocket_tag, "Socket unable to connect: errno %d", errno);
+        return;
+    }
+    ESP_LOGI(websocket_tag, "Successfully connected");
 }
 
 void websocket_send(void *pvParameters)
@@ -68,19 +83,26 @@ void websocket_send(void *pvParameters)
     if (pic == NULL)
     {
         ESP_LOGE(websocket_tag, "Picture buffer is NULL");
-        vTaskDelete(NULL);
+        goto retry_while_error;
     }
     struct sockaddr_in dest_addr;
     dest_addr.sin_addr.s_addr = inet_addr(HOST_IP_ADDR);
     dest_addr.sin_family = AF_INET;
     dest_addr.sin_port = htons(PORT);
 
-    ESP_LOGD(websocket_tag, "Picture size is %d bytes", pic->len);
-    int err = sendto(sock, (void*) pic->buf, pic->len, 0, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
+
+    ESP_LOGD(websocket_tag, "Sending picture of size %d bytes at address %p", pic->len, pic);
+    int32_t err = send(sock, (void*) pic->buf, pic->len, TCP_KEEPALIVE);
     if (err < 0)
+    {
         ESP_LOGE(websocket_tag, "Error occurred during sending: errno %d", errno);
-    else
-        ESP_LOGI(websocket_tag, "JPEG binary sent in UDP");
+        goto retry_while_error;
+    }
+    ESP_LOGI(websocket_tag, "JPEG binary sent in TCP");
+
+    retry_while_error:
+    // start taking new pictures
+    esp_event_post(CAMERA_EVENTS, CAMERA_EVENT_TASK_START, NULL, 0, portMAX_DELAY);
 
     xSemaphoreGive(websocket_mutex);
     vTaskDelete(NULL);
