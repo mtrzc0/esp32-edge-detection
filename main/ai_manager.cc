@@ -27,8 +27,8 @@ namespace
     TfLiteTensor *input, *output = nullptr;
 
     // FIXME: check if this is correct size for tensor arena, should be hned_tflite_len?
-    // tesor arena should be 1 (img) * (channel) * (width) * (height)
-    const int kTensorArenaSize = 3 * 512 * 512 * 3;
+    // tensor arena should be 3 (???) (img) * (channel) * (width) * (height)
+    const int kTensorArenaSize = 3 * 3 * 512 * 512;
     uint8_t *tensor_arena = nullptr;
     SemaphoreHandle_t ai_mutex;
     camera_fb_t *pic;
@@ -53,7 +53,6 @@ extern "C" void ai_event_handler(void *arg, esp_event_base_t event_base, int32_t
                                      nullptr);
         ESP_ERROR_CHECK(ret != pdPASS ? ESP_ERR_NO_MEM : ESP_OK);
     }
-
 }
 
 extern "C" void ai_init()
@@ -122,6 +121,9 @@ extern "C" void ai_init()
     {
         ESP_LOGD(ai_tag, "AllocateTensors() failed");
     }
+
+    // after AllocateTensors() find optimal arena size
+    ESP_LOGD(ai_tag, "Optimal arena size: %d", interpreter->arena_used_bytes());
 
     input = interpreter->input(0);
 }

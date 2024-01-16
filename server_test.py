@@ -1,9 +1,12 @@
-#!/usr/bin/env python
-''' Async TCP server to make first tests of newly received GPS trackers '''
-
 import asyncore
 import socket
 import logging
+
+import numpy as np
+import torch
+
+IMG_BUF = 3 * 3 * 512 * 512 # 3 channels, 512x512 image times 3 bytes per pixel (idk why)
+SAVE_FOLDER = "received_img/"
 
 class Server(asyncore.dispatcher):
     def __init__(self, address):
@@ -23,29 +26,20 @@ class Server(asyncore.dispatcher):
             self.logger.debug('handle_accept() -> %s', client_info[1])
             ClientHandler(client_info[0], client_info[1])
 
-
 class ClientHandler(asyncore.dispatcher):
     def __init__(self, sock, address):
         asyncore.dispatcher.__init__(self, sock)
         self.logger = logging.getLogger('Client ' + str(address))
-        self.data_to_write = []
-
-    def writable(self):
-        return bool(self.data_to_write)
-
-    def handle_write(self):
-        data = self.data_to_write.pop()
-        sent = self.send(data[:1024])
-        if sent < len(data):
-            remaining = data[sent:]
-            self.data.to_write.append(remaining)
-        self.logger.debug('handle_write() -> (%d) "%s"', sent, data[:sent].rstrip())
 
     def handle_read(self):
-        data = self.recv(1024)
+        data = self.recv(IMG_BUF)
         self.logger.debug('handle_read() -> (%d) "%s"', len(data), data.rstrip())
-        # !!!!! EAXAMPLE - ECHO
-        self.data_to_write.insert(0, data)
+        #TODO: Change hex_dump to JPEG image
+        try:
+            tensor = torch.tensor(np.frombuffer(data, dtype=np.uint8), dtype=torch.uint8).to(torch.device("cpu")).view(3, 512, 512)
+            tensor.toPILImage().save(f"{SAVE_FOLDER}/test.jpg")
+        except OSError:
+            print("Received invalid hex dump. Skipping...")
 
     def handle_close(self):
         self.logger.debug('handle_close()')

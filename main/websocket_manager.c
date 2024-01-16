@@ -62,11 +62,6 @@ void websocket_init(void)
     }
     ESP_LOGI(websocket_tag, "Socket created, sending to %s:%d", HOST_IP_ADDR, PORT);
 
-//    struct timeval timeout;
-//    timeout.tv_sec = 10;
-//    timeout.tv_usec = 0;
-//    setsockopt (sock, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof timeout);
-
     int32_t conn = connect(sock, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
     if (conn != 0)
     {
@@ -89,7 +84,6 @@ void websocket_send(void *pvParameters)
     dest_addr.sin_addr.s_addr = inet_addr(HOST_IP_ADDR);
     dest_addr.sin_family = AF_INET;
     dest_addr.sin_port = htons(PORT);
-
 
     ESP_LOGD(websocket_tag, "Sending picture of size %d bytes at address %p", pic->len, pic);
     int32_t err = send(sock, (void*) pic->buf, pic->len, TCP_KEEPALIVE);
