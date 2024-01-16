@@ -1,6 +1,8 @@
 import socket
-import torch
+
 import numpy as np
+import torch
+import torchvision.transforms as transforms
 
 TCP_IP = ""
 TCP_PORT = 8765
@@ -40,13 +42,16 @@ def start_tcp_server(host, port):
             print(f"Received {total_received} bytes of data")
 
             # Save the received data to a file
-            file = open(f"{SAVE_FOLDER}/tensor", "wb")
-            file.write(received_data)
-            tensor = torch.tensor(np.frombuffer(received_data, dtype=np.uint8), dtype=torch.uint8).to(torch.device("cpu"))
-            tensor.toPILImage().save(f"{SAVE_FOLDER}/test.jpg")
+            # file = open(f"{SAVE_FOLDER}/tensor", "wb")
+            # file.write(received_data)
+            # file.close()
+
+            # Convert the received data to a tensor and save it as an image
+            tensor = torch.frombuffer(received_data, dtype=torch.uint8).reshape(3, 3, 512, 512)
+            transforms.ToPILImage()(tensor).save(f"{SAVE_FOLDER}/img.png")
 
         except Exception as e:
-            print(f"Error receiving data: {e}")
+            print(f"Server exception: {e}")
         finally:
             # Close the connection
             client_socket.close()

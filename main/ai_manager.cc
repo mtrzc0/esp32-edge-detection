@@ -8,6 +8,10 @@
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/schema/schema_generated.h"
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
+#include "tensorflow/lite/core/c/common.h"
+#include "tensorflow/lite/micro/micro_log.h"
+#include "tensorflow/lite/micro/micro_profiler.h"
+#include "tensorflow/lite/micro/recording_micro_interpreter.h"
 
 #include "model_data_test.h"
 
@@ -23,10 +27,9 @@ ESP_EVENT_DEFINE_BASE(AI_EVENTS);
 namespace
 {
     const tflite::Model *model = nullptr;
-    tflite::MicroInterpreter *interpreter = nullptr;
+    tflite::RecordingMicroInterpreter *interpreter = nullptr;
     TfLiteTensor *input, *output = nullptr;
 
-    // FIXME: check if this is correct size for tensor arena, should be hned_tflite_len?
     // tensor arena should be 3 (???) (img) * (channel) * (width) * (height)
     const int kTensorArenaSize = 3 * 3 * 512 * 512;
     uint8_t *tensor_arena = nullptr;
@@ -110,11 +113,11 @@ extern "C" void ai_init()
     micro_op_resolver.AddEqual();
     micro_op_resolver.AddIf();
 
-    static tflite::MicroInterpreter static_interpreter(model,
-                                                       micro_op_resolver,
-                                                       tensor_arena,
-                                                       kTensorArenaSize);
-    // FIXME: AllocateTensors() fails
+    static tflite::RecordingMicroInterpreter static_interpreter(model,
+                                                                micro_op_resolver,
+                                                                tensor_arena,
+                                                                kTensorArenaSize);
+
     interpreter = &static_interpreter;
     TfLiteStatus allocate_status = interpreter->AllocateTensors();
     if (allocate_status != kTfLiteOk)
@@ -125,6 +128,10 @@ extern "C" void ai_init()
     // after AllocateTensors() find optimal arena size
     ESP_LOGD(ai_tag, "Optimal arena size: %d", interpreter->arena_used_bytes());
 
+    // print allocations
+    interpreter->GetMicroAllocator().PrintAllocations();
+
+    // get input and output tensors
     input = interpreter->input(0);
 }
 
@@ -155,6 +162,7 @@ extern "C" void ai_task(void *pvParameters)
         // update picture buffer
         pic->buf = output->data.uint8;
         pic->len = output->bytes;
+        ESP_LOGD(ai_tag, "Shape of output tensor is %d x %d x %d x %d", output->dims->size, output->dims->data[0], output->dims->data[1], output->dims->data[2]);
         ESP_LOGD(ai_tag, "Picture size after processing is %d bytes at address %p", pic->len, pic);
         esp_event_post(AI_EVENTS,
                        AI_EVENT_TASK_DONE,
