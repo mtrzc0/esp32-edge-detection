@@ -1,4 +1,4 @@
-Project for MiTP
+Project for PP RAI 2024
 
 ### Core
 - [x] Event loop
