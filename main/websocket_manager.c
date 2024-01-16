@@ -1,9 +1,7 @@
 #include <sys/param.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
-#include <http_parser.h>
 
-#include "esp_system.h"
 #include "esp_log.h"
 #include "lwip/err.h"
 #include "lwip/sockets.h"
@@ -90,6 +88,11 @@ void websocket_send(void *pvParameters)
     if (err < 0)
     {
         ESP_LOGE(websocket_tag, "Error occurred during sending: errno %d", errno);
+        ESP_LOGE(websocket_tag, "Shutting down socket and restarting...");
+        shutdown(sock, 0);
+        close(sock);
+        vTaskDelay(1);
+        websocket_init();
         goto retry_while_error;
     }
     ESP_LOGI(websocket_tag, "JPEG binary sent in TCP");
