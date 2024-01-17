@@ -41,13 +41,10 @@ def start_tcp_server(host, port):
 
             print(f"Received {total_received} bytes of data")
 
-            # Save the received data to a file
-            # file = open(f"{SAVE_FOLDER}/tensor", "wb")
-            # file.write(received_data)
-            # file.close()
-
             # Convert the received data to a tensor and save it as an image
-            tensor = torch.frombuffer(received_data, dtype=torch.uint8).reshape(3, 3, 512, 512)
+            tensor = torch.frombuffer(received_data, dtype=torch.uint8)
+            torch.save(tensor, f"{SAVE_FOLDER}/tensor.pt")
+            tensor = tensor[:512*512*3].reshape(3, 512, 512)
             transforms.ToPILImage()(tensor).save(f"{SAVE_FOLDER}/img.png")
 
         except Exception as e:
