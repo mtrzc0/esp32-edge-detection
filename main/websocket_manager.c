@@ -22,7 +22,7 @@
 #define PORT CONFIG_SOCKET_PORT
 
 static const char *websocket_tag = "websocket";
-static int32_t sock = 0, conn = 0;
+static int32_t sock = 0;
 
 static SemaphoreHandle_t websocket_mutex;
 
@@ -60,7 +60,7 @@ void websocket_init(void)
     }
     ESP_LOGI(websocket_tag, "Socket created, sending to %s:%d", HOST_IP_ADDR, PORT);
 
-    conn = connect(sock, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
+    int32_t conn = connect(sock, (struct sockaddr *)&dest_addr, sizeof(dest_addr));
     if (conn != 0)
     {
         ESP_LOGE(websocket_tag, "Socket unable to connect: errno %d", errno);
