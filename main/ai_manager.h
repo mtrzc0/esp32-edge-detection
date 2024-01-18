@@ -4,6 +4,10 @@
 #include "esp_event.h"
 #include "esp_camera.h"
 
+#define IMG_CHANNELS 3
+#define IMG_WIDTH 512
+#define IMG_HEIGHT 512
+
 typedef enum {
     AI_EVENT_TASK_DONE,
     AI_EVENT_TASK_FAIL,

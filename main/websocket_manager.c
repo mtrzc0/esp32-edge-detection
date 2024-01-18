@@ -83,7 +83,7 @@ void websocket_send(void *pvParameters)
     dest_addr.sin_family = AF_INET;
     dest_addr.sin_port = htons(PORT);
 
-    ESP_LOGD(websocket_tag, "Sending picture of size %d bytes at address %p", pic->len, pic);
+    ESP_LOGI(websocket_tag, "Sending picture of size %d bytes at address %p", pic->len, pic);
     int32_t err = send(sock, (void*) pic->buf, pic->len, TCP_KEEPALIVE);
     if (err < 0)
     {
@@ -95,7 +95,6 @@ void websocket_send(void *pvParameters)
         websocket_init();
         goto retry_while_error;
     }
-    ESP_LOGI(websocket_tag, "JPEG binary sent in TCP");
 
     retry_while_error:
     // start taking new pictures

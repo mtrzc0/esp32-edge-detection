@@ -31,7 +31,7 @@ namespace
     TfLiteTensor *input, *output = nullptr;
 
     // tensor arena should be 3 (???) (img) * (channel) * (width) * (height)
-    const int kTensorArenaSize = 3 * 3 * 512 * 512;
+    const int kTensorArenaSize = 3 * IMG_CHANNELS * IMG_HEIGHT * IMG_WIDTH;
     uint8_t *tensor_arena = nullptr;
     SemaphoreHandle_t ai_mutex;
     camera_fb_t *pic;
@@ -119,10 +119,16 @@ extern "C" void ai_init()
                                                                 kTensorArenaSize);
 
     interpreter = &static_interpreter;
+    if (interpreter == nullptr)
+    {
+        ESP_LOGD(ai_tag, "Failed to create interpreter");
+        return;
+    }
     TfLiteStatus allocate_status = interpreter->AllocateTensors();
     if (allocate_status != kTfLiteOk)
     {
         ESP_LOGD(ai_tag, "AllocateTensors() failed");
+        return;
     }
 
     // after AllocateTensors() find optimal arena size
@@ -133,12 +139,26 @@ extern "C" void ai_init()
 
     // get input and output tensors
     input = interpreter->input(0);
+    input->allocation_type = kTfLiteDynamic;
+    input->type = kTfLiteUInt8;
+
 }
 
 extern "C" void ai_task(void *pvParameters)
 {
     pic = (camera_fb_t *) pvParameters;
     ESP_LOGD(ai_tag, "Running on picture of size %d at address %p", pic->len, pic);
+
+    // set input tensor to image data
+    if (input->dims == nullptr)
+    {
+        ESP_LOGD(ai_tag, "Input tensor has no dimensions");
+        return;
+    }
+    ESP_LOGD(ai_tag, "Input tensor has %d dimensions", input->dims->size);
+
+    input->allocation_type = kTfLiteDynamic;
+    input->type = kTfLiteUInt8;
     input->data.uint8 = pic->buf;
     input->bytes = pic->len;
 
@@ -162,7 +182,7 @@ extern "C" void ai_task(void *pvParameters)
         // update picture buffer
         pic->buf = output->data.uint8;
         pic->len = output->bytes;
-        ESP_LOGD(ai_tag, "Shape of output tensor is %d x %d x %d x %d", output->dims->size, output->dims->data[0], output->dims->data[1], output->dims->data[2]);
+        ESP_LOGD(ai_tag, "Shape of output tensor is %d x %d x %d", output->dims->data[0], output->dims->data[1], output->dims->data[2]);
         ESP_LOGD(ai_tag, "Picture size after processing is %d bytes at address %p", pic->len, pic);
         esp_event_post(AI_EVENTS,
                        AI_EVENT_TASK_DONE,

@@ -3,6 +3,7 @@ import socket
 import numpy as np
 import torch
 import torchvision.transforms as transforms
+import time
 
 TCP_IP = ""
 TCP_PORT = 8765
@@ -45,7 +46,9 @@ def start_tcp_server(host, port):
             tensor = torch.frombuffer(received_data, dtype=torch.uint8)
             torch.save(tensor, f"{SAVE_FOLDER}/tensor.pt")
             tensor = tensor[:512*512*3].reshape(3, 512, 512)
-            transforms.ToPILImage()(tensor).save(f"{SAVE_FOLDER}/img.png")
+            timestamp = time.time()
+            transforms.ToPILImage()(tensor).save(f"{SAVE_FOLDER}/img{timestamp}.jpg")
+
 
         except Exception as e:
             print(f"Server exception: {e}")
