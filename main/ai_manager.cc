@@ -41,7 +41,8 @@ extern "C" void ai_event_handler(void *arg, esp_event_base_t event_base, int32_t
 {
     (void) arg;
     (void) event_data;
-    if (event_base == AI_EVENTS && event_id == AI_EVENT_TASK_FAIL) {
+    if (event_base == AI_EVENTS && event_id == AI_EVENT_TASK_FAIL)
+    {
         ESP_LOGE(ai_tag, "Task failed");
     }
     else if (event_base == AI_EVENTS && event_id == AI_EVENT_TASK_DONE)
@@ -121,7 +122,7 @@ extern "C" void ai_init()
     interpreter = &static_interpreter;
     if (interpreter == nullptr)
     {
-        ESP_LOGD(ai_tag, "Failed to create interpreter");
+        ESP_LOGD(ai_tag, "Failed to create an interpreter");
         return;
     }
     TfLiteStatus allocate_status = interpreter->AllocateTensors();
