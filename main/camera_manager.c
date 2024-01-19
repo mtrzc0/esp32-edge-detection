@@ -8,7 +8,6 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "websocket_manager.h"
 
 static const char *camera_tag = "camera";
 

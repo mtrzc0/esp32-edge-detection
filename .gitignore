@@ -1,8 +1,6 @@
 build
 cmake-build-debug
-sdkconfig
-sdkconfig.old
-sdkconfig.ci
+sdkconfig*
 .idea
 main/cmake-build-debug
 dependencies.lock
