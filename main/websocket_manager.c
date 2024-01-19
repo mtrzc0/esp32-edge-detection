@@ -76,7 +76,7 @@ void websocket_send(void *pvParameters)
     if (pic == NULL)
     {
         ESP_LOGE(websocket_tag, "Picture buffer is NULL");
-        goto retry_while_error;
+        goto retry_while_null;
     }
     struct sockaddr_in dest_addr;
     dest_addr.sin_addr.s_addr = inet_addr(HOST_IP_ADDR);
@@ -93,10 +93,9 @@ void websocket_send(void *pvParameters)
         close(sock);
         vTaskDelay(1);
         websocket_init();
-        goto retry_while_error;
     }
 
-    retry_while_error:
+    retry_while_null:
     // start taking new pictures
     esp_event_post(CAMERA_EVENTS, CAMERA_EVENT_TASK_START, NULL, 0, portMAX_DELAY);
 

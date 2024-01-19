@@ -8,6 +8,7 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "websocket_manager.h"
 
 static const char *camera_tag = "camera";
 
@@ -25,7 +26,6 @@ static void camera_event_handler(void *arg, esp_event_base_t event_base, int8_t 
     else if (event_base == CAMERA_EVENTS && event_id == CAMERA_EVENT_TASK_START)
     {
         ESP_LOGI(camera_tag, "Camera ready");
-        // pin camera task to core 0
         BaseType_t ret = xTaskCreate(camera_task,
                                      camera_tag,
                                      configMINIMAL_STACK_SIZE + 2048,
@@ -37,7 +37,7 @@ static void camera_event_handler(void *arg, esp_event_base_t event_base, int8_t 
     else if (event_base == CAMERA_EVENTS && event_id == CAMERA_EVENT_TASK_DONE)
     {
         ESP_LOGI(camera_tag, "Picture ready");
-        // pin ai task to core 0
+#if CONFIG_AI_ENABLED
         BaseType_t ret = xTaskCreate(ai_task,
                                      camera_tag,
                                      configMINIMAL_STACK_SIZE + 2048,
@@ -45,6 +45,15 @@ static void camera_event_handler(void *arg, esp_event_base_t event_base, int8_t 
                                      TP_AI_TASK,
                                      NULL);
         ESP_ERROR_CHECK(ret != pdPASS ? ESP_ERR_NO_MEM : ESP_OK);
+#else
+        BaseType_t ret = xTaskCreate(websocket_send,
+                                     camera_tag,
+                                     configMINIMAL_STACK_SIZE + 2048,
+                                     pic,
+                                     TP_WEBSOCKET_SEND,
+                                     NULL);
+        ESP_ERROR_CHECK(ret != pdPASS ? ESP_ERR_NO_MEM : ESP_OK);
+#endif
     }
 }
 

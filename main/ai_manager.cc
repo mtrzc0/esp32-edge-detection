@@ -30,8 +30,8 @@ namespace
     tflite::RecordingMicroInterpreter *interpreter = nullptr;
     TfLiteTensor *input, *output = nullptr;
 
-    // tensor arena should be 3 (???) (img) * (channel) * (width) * (height)
-    const int kTensorArenaSize = 3 * IMG_CHANNELS * IMG_HEIGHT * IMG_WIDTH;
+    // tensor arena should be 3 (???) (img) * (channel) * (height) * (width)
+    const int kTensorArenaSize = 3 * CONFIG_AI_IMAGE_CHANNELS * CONFIG_AI_IMAGE_HEIGHT * CONFIG_AI_IMAGE_WIDTH;
     uint8_t *tensor_arena = nullptr;
     SemaphoreHandle_t ai_mutex;
     camera_fb_t *pic;

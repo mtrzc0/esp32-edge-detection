@@ -47,5 +47,7 @@ void app_main(void)
     wifi_init();
     websocket_init();
     camera_init();
+#if CONFIG_AI_ENABLED
     ai_init();
+#endif
 }
