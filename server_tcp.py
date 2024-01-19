@@ -1,14 +1,24 @@
 import socket
+import sys
 
-import numpy as np
 import torch
 import torchvision.transforms as transforms
 import time
+from io import BytesIO
+from PIL import Image
+
+Image.LOAD_TRUNCATED_IMAGES = True
 
 TCP_IP = ""
 TCP_PORT = 8765
-TCP_BUFFER_EXPECTED_SIZE = 3*3*512*512  # MB
-TCP_BUFFER_SIZE = TCP_BUFFER_EXPECTED_SIZE // 16
+
+if sys.argv[1] == "jpeg":
+    TCP_BUFFER_EXPECTED_SIZE = 32 * 1024
+    TCP_BUFFER_SIZE = TCP_BUFFER_EXPECTED_SIZE
+elif sys.argv[1] == "tensor":
+    TCP_BUFFER_EXPECTED_SIZE = 3*3*512*512
+    TCP_BUFFER_SIZE = TCP_BUFFER_EXPECTED_SIZE // 16
+
 SAVE_FOLDER = "received_img"
 
 
@@ -42,12 +52,21 @@ def start_tcp_server(host, port):
 
             print(f"Received {total_received} bytes of data")
 
-            # Convert the received data to a tensor and save it as an image
-            tensor = torch.frombuffer(received_data, dtype=torch.uint8)
-            torch.save(tensor, f"{SAVE_FOLDER}/tensor.pt")
-            tensor = tensor[:512*512*3].reshape(3, 512, 512)
             timestamp = time.time()
-            transforms.ToPILImage()(tensor).save(f"{SAVE_FOLDER}/img{timestamp}.jpg")
+
+            if sys.argv[1] == "jpeg":
+                jpeg_image = Image.open(BytesIO(received_data)).convert("RGB").resize((512, 512))
+                jpeg_image.save(f"{SAVE_FOLDER}/raw_img{timestamp}.jpg")
+            elif sys.argv[1] == "tensor":
+                # Convert the received data to a tensor and save it as an image
+                tensor = torch.frombuffer(received_data, dtype=torch.uint8)
+                torch.save(tensor, f"{SAVE_FOLDER}/tensor_raw{timestamp}.pt")
+                tensor = tensor[:512*512*3].reshape(3, 512, 512)
+                transforms.ToPILImage()(tensor).save(f"{SAVE_FOLDER}/tensor_img{timestamp}.jpg")
+            else:
+                assert False, "Invalid argument"
+
+            print(f"Saved image to {SAVE_FOLDER}/img{timestamp}.jpg")
 
 
         except Exception as e:

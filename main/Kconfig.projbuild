@@ -10,6 +10,26 @@ menu "Wifi Credentials"
 
 endmenu
 
+menu "AI Configuration"
+
+    config AI_ENABLED
+        bool "Use AI"
+        default n
+
+    config AI_IMAGE_WIDTH
+        int "AI image Width"
+        default 512
+
+    config AI_IMAGE_HEIGHT
+        int "AI image Height"
+        default 512
+
+    config AI_IMAGE_CHANNELS
+        int "AI image Channels"
+        default 3
+
+endmenu
+
 menu "Websocket Configuration"
 
     choice IP_MODE

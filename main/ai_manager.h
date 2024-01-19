@@ -4,6 +4,7 @@
 #include "esp_event.h"
 #include "esp_camera.h"
 
+// deprecated
 #define IMG_CHANNELS 3
 #define IMG_WIDTH 512
 #define IMG_HEIGHT 512
