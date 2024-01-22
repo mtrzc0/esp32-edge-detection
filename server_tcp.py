@@ -1,7 +1,8 @@
 import socket
 import sys
-
 import torch
+import tensorflow as tf
+import matplotlib.pyplot as plt
 import torchvision.transforms as transforms
 import time
 from io import BytesIO
@@ -16,8 +17,8 @@ if sys.argv[1] == "jpeg":
     TCP_BUFFER_EXPECTED_SIZE = 32 * 1024
     TCP_BUFFER_SIZE = TCP_BUFFER_EXPECTED_SIZE
 elif sys.argv[1] == "tensor":
-    TCP_BUFFER_EXPECTED_SIZE = 3*3*512*512
-    TCP_BUFFER_SIZE = TCP_BUFFER_EXPECTED_SIZE // 16
+    TCP_BUFFER_EXPECTED_SIZE = 3 * 512 * 512
+    TCP_BUFFER_SIZE = TCP_BUFFER_EXPECTED_SIZE
 
 SAVE_FOLDER = "received_img"
 
@@ -49,8 +50,11 @@ def start_tcp_server(host, port):
                     break
                 received_data += data_chunk.rstrip()
                 total_received += len(data_chunk)
+            len_received_data = len(received_data)
 
-            print(f"Received {total_received} bytes of data")
+            print(f"Received {total_received} bytes of data, len of received_data: {len(received_data)}")
+            for _ in range(total_received - len_received_data):
+                received_data += b"0"
 
             timestamp = time.time()
 
@@ -58,11 +62,9 @@ def start_tcp_server(host, port):
                 jpeg_image = Image.open(BytesIO(received_data)).convert("RGB").resize((512, 512))
                 jpeg_image.save(f"{SAVE_FOLDER}/raw_img{timestamp}.jpg")
             elif sys.argv[1] == "tensor":
-                # Convert the received data to a tensor and save it as an image
-                tensor = torch.frombuffer(received_data, dtype=torch.uint8)
-                torch.save(tensor, f"{SAVE_FOLDER}/tensor_raw{timestamp}.pt")
-                tensor = tensor[:512*512*3].reshape(3, 512, 512)
-                transforms.ToPILImage()(tensor).save(f"{SAVE_FOLDER}/tensor_img{timestamp}.jpg")
+                tensor = tf.io.decode_image(received_data)
+                jpeg_image = tf.io.encode_jpeg(tf.image.convert_image_dtype(tensor, tf.uint8))
+                tf.io.write_file(f"{SAVE_FOLDER}/tensor_img{timestamp}.jpg", jpeg_image)
             else:
                 assert False, "Invalid argument"
 

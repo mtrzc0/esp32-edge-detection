@@ -142,7 +142,6 @@ extern "C" void ai_init()
     input = interpreter->input(0);
     input->allocation_type = kTfLiteDynamic;
     input->type = kTfLiteUInt8;
-
 }
 
 extern "C" void ai_task(void *pvParameters)
