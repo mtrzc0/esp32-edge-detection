@@ -13,7 +13,7 @@
 #include "tensorflow/lite/micro/micro_profiler.h"
 #include "tensorflow/lite/micro/recording_micro_interpreter.h"
 
-#include "model_data_test.h"
+#include "model_data.h"
 
 #include "camera_manager.h"
 #include "ai_manager.h"
@@ -35,6 +35,8 @@ namespace
     uint8_t *tensor_arena = nullptr;
     SemaphoreHandle_t ai_mutex;
     camera_fb_t *pic;
+    // prevent running the task
+    TfLiteStatus init_err = kTfLiteOk;
 }
 
 extern "C" void ai_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
@@ -44,6 +46,8 @@ extern "C" void ai_event_handler(void *arg, esp_event_base_t event_base, int32_t
     if (event_base == AI_EVENTS && event_id == AI_EVENT_TASK_FAIL)
     {
         ESP_LOGE(ai_tag, "Task failed");
+        // start taking new pictures
+        esp_event_post(CAMERA_EVENTS, CAMERA_EVENT_TASK_START, nullptr, 0, portMAX_DELAY);
     }
     else if (event_base == AI_EVENTS && event_id == AI_EVENT_TASK_DONE)
     {
@@ -120,20 +124,14 @@ extern "C" void ai_init()
                                                                 kTensorArenaSize);
 
     interpreter = &static_interpreter;
-    if (interpreter == nullptr)
-    {
-        ESP_LOGD(ai_tag, "Failed to create an interpreter");
-        return;
-    }
     TfLiteStatus allocate_status = interpreter->AllocateTensors();
     if (allocate_status != kTfLiteOk)
     {
+        // TODO: prevent of running the task
         ESP_LOGD(ai_tag, "AllocateTensors() failed");
+        init_err = kTfLiteError;
         return;
     }
-
-    // after AllocateTensors() find optimal arena size
-    ESP_LOGD(ai_tag, "Optimal arena size: %d", interpreter->arena_used_bytes());
 
     // print allocations
     interpreter->GetMicroAllocator().PrintAllocations();
@@ -146,6 +144,17 @@ extern "C" void ai_init()
 
 extern "C" void ai_task(void *pvParameters)
 {
+    // prevent of running the task while some exceptions
+    if (init_err != kTfLiteOk)
+    {
+        esp_event_post(AI_EVENTS,
+                       AI_EVENT_TASK_FAIL,
+                       nullptr,
+                       0,
+                       portMAX_DELAY);
+        vTaskDelete(nullptr);
+    }
+
     pic = (camera_fb_t *) pvParameters;
     ESP_LOGD(ai_tag, "Running on picture of size %d at address %p", pic->len, pic);
 
@@ -172,6 +181,7 @@ extern "C" void ai_task(void *pvParameters)
                        nullptr,
                        0,
                        portMAX_DELAY);
+        vTaskDelete(nullptr);
     }
     else
     {
