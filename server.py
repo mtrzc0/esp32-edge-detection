@@ -1,9 +1,6 @@
 import socket
 import sys
-import torch
 import tensorflow as tf
-import matplotlib.pyplot as plt
-import torchvision.transforms as transforms
 import time
 from io import BytesIO
 from PIL import Image
