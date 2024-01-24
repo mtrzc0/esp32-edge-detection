@@ -9,7 +9,7 @@ Project for PP RAI 2024
 - [x] Receiving JPEG from ESP32 via server.py
 
 ### TODO
-- [ ] Fix `output_shape->data[shape_size] != dim_shape(1 != 0)
+- [ ] Fix error related to Torch ai model arch: `output_shape->data[shape_size] != dim_shape(1 != 0)
 Node STRIDED_SLICE (number 48f) failed to prepare with status 1`
 
 ## Installation Steps for Edge Detection AI Model on ESP
