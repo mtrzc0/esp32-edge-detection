@@ -4,6 +4,7 @@
 
 #include "ai_manager.h"
 #include "camera_manager.h"
+#include "websocket_manager.h"
 #include "task_prio.h"
 
 #include "freertos/FreeRTOS.h"
